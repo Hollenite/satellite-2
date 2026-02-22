@@ -33,8 +33,12 @@ checkpoints/*.pt
 checkpoints/*.onnx
 
 # Raw satellite data (large — download via scripts)
-data/raw/
 data/processed/
+/data/raw2/
+# data/raw/images2
+# data/raw/masks2
+# data/whu_building_dataset.zip
+# data/whu_satellite_I.zip
 
 # Keep config files (they are small and needed for deployment)
 # !data/config/
