@@ -1,12 +1,12 @@
 """
-Streamlit demo app — AI-Assisted Rooftop Solar Pre-Assessment.
+Solar Rooftop Analyzer — AI-powered solar potential assessment.
 
 Run with:
-    cd d:\\PROJECTS\\AIML-Hackathon-21feb\\satellite
     streamlit run app.py
 """
 from __future__ import annotations
 
+import base64
 import csv
 import io
 import json
@@ -61,16 +61,348 @@ from src.feasibility import enrich_polygons_with_feasibility
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="☀️ Solar Rooftop Pre-Assessment",
+    page_title="Solar Rooftop Analyzer",
     page_icon="☀️",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
-st.title("☀️ AI-Assisted Rooftop Solar Pre-Assessment")
-st.caption(
-    "Upload a satellite tile or use synthetic data to estimate rooftop solar potential. "
-    "This is a **pre-assessment tool** — not a substitute for professional site survey."
-)
+# ---------------------------------------------------------------------------
+# Custom CSS — Modern card-based UI
+# ---------------------------------------------------------------------------
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Global ──────────────────────────────────────── */
+html, body, .stApp {
+    font-family: 'Inter', sans-serif !important;
+    background: #F0F4F8 !important;
+}
+.block-container { max-width: 1200px; padding-top: 1.5rem !important; }
+header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px solid #E2E8F0; }
+
+/* Hide default Streamlit chrome */
+#MainMenu, footer, .stDeployButton { display: none !important; }
+
+/* ── Top navbar ──────────────────────────────────── */
+.top-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 0; margin-bottom: 0.5rem;
+}
+.top-nav-brand {
+    display: flex; align-items: center; gap: 12px;
+}
+.top-nav-brand .logo {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, #2563EB, #1E40AF);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 20px; font-weight: 700;
+}
+.top-nav-brand h1 {
+    font-size: 1.25rem; font-weight: 700; color: #0F172A;
+    margin: 0; line-height: 1.2;
+}
+.top-nav-brand p {
+    font-size: 0.78rem; color: #64748B; margin: 0;
+}
+.top-nav-actions {
+    display: flex; gap: 10px; align-items: center;
+}
+.btn-settings {
+    padding: 8px 16px; border-radius: 8px; border: 1px solid #E2E8F0;
+    background: #fff; color: #334155; font-size: 0.82rem; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    text-decoration: none;
+}
+.btn-primary-custom {
+    padding: 8px 20px; border-radius: 8px; border: none;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: #fff; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    text-decoration: none; box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+}
+
+/* ── Tab bar ─────────────────────────────────────── */
+.tab-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.2rem;
+}
+.tab-pills {
+    display: flex; gap: 4px; background: #E2E8F0; border-radius: 10px; padding: 3px;
+}
+.tab-pill {
+    padding: 8px 18px; border-radius: 8px; font-size: 0.82rem; font-weight: 500;
+    color: #475569; cursor: pointer; transition: all 0.2s;
+}
+.tab-pill.active {
+    background: #2563EB; color: #fff; box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+}
+
+/* ── Buildings badge (hover reveals image) ───────── */
+.buildings-badge-wrapper {
+    position: relative; display: inline-block;
+}
+.buildings-badge {
+    padding: 8px 18px; border-radius: 10px; border: 1px solid #E2E8F0;
+    background: #fff; color: #334155; font-size: 0.82rem; font-weight: 600;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: all 0.2s;
+}
+.buildings-badge:hover {
+    border-color: #2563EB; box-shadow: 0 2px 12px rgba(37,99,235,0.15);
+}
+.buildings-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #22C55E;
+}
+.hover-overlay {
+    display: none; position: absolute; top: 110%; right: 0; z-index: 1000;
+    background: #fff; border-radius: 16px; padding: 8px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18); border: 1px solid #E2E8F0;
+    min-width: 380px;
+}
+.hover-overlay img {
+    border-radius: 12px; width: 100%; height: auto;
+}
+.buildings-badge-wrapper:hover .hover-overlay {
+    display: block;
+}
+
+/* ── Image gallery ───────────────────────────────── */
+.img-gallery {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 1.5rem;
+}
+.img-card {
+    border-radius: 16px; overflow: hidden; position: relative;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #E2E8F0;
+    background: #111827;
+}
+.img-card img {
+    width: 100%; height: 260px; object-fit: cover; display: block;
+}
+.img-card .img-label {
+    position: absolute; bottom: 12px; left: 12px;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+    color: #fff; padding: 6px 14px; border-radius: 8px;
+    font-size: 0.75rem; font-weight: 500;
+}
+
+/* ── Metric cards ────────────────────────────────── */
+.metric-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    margin-bottom: 1.5rem;
+}
+.metric-card {
+    background: #fff; border-radius: 16px; padding: 20px 18px;
+    border: 1px solid #E2E8F0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+}
+.metric-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.metric-card .icon-box {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; margin-bottom: 14px;
+}
+.icon-blue   { background: #EFF6FF; color: #2563EB; }
+.icon-indigo { background: #EEF2FF; color: #4F46E5; }
+.icon-amber  { background: #FFFBEB; color: #D97706; }
+.icon-green  { background: #F0FDF4; color: #16A34A; }
+.metric-card .value {
+    font-size: 1.75rem; font-weight: 800; color: #0F172A; line-height: 1.1;
+}
+.metric-card .label {
+    font-size: 0.78rem; color: #64748B; margin-top: 4px; font-weight: 400;
+}
+.metric-card .sublabel {
+    font-size: 0.68rem; color: #94A3B8; margin-top: 2px;
+}
+
+/* ── Annual banner ───────────────────────────────── */
+.annual-banner {
+    background: linear-gradient(135deg, #2563EB 0%, #1E40AF 60%, #1E3A8A 100%);
+    border-radius: 18px; padding: 28px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem; color: #fff;
+    box-shadow: 0 4px 20px rgba(37,99,235,0.3);
+}
+.annual-banner .left-side {
+    display: flex; align-items: center; gap: 18px;
+}
+.annual-banner .icon-circle {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,255,255,0.15); display: flex;
+    align-items: center; justify-content: center; font-size: 24px;
+}
+.annual-banner .banner-label {
+    font-size: 0.82rem; color: rgba(255,255,255,0.8); font-weight: 400;
+}
+.annual-banner .banner-value {
+    font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em;
+}
+.annual-banner .banner-sub {
+    font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 2px;
+}
+
+/* ── Insight cards ───────────────────────────────── */
+.insight-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    margin-bottom: 1.5rem;
+}
+.insight-card {
+    background: #fff; border-radius: 14px; padding: 18px;
+    border: 1px solid #E2E8F0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.insight-card .insight-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; margin-bottom: 10px;
+}
+.insight-card .insight-title {
+    font-size: 0.85rem; font-weight: 600; color: #0F172A; margin-bottom: 4px;
+}
+.insight-card .insight-text {
+    font-size: 0.75rem; color: #64748B; line-height: 1.45;
+}
+
+/* ── Section headers ─────────────────────────────── */
+.section-header {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.05rem; font-weight: 700; color: #0F172A;
+    margin: 1.5rem 0 1rem 0; padding-bottom: 8px;
+    border-bottom: 2px solid #E2E8F0;
+}
+.section-header .sh-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: #EFF6FF; color: #2563EB;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+}
+
+/* ── Info row (key-value pairs) ──────────────────── */
+.info-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+    background: #fff; border-radius: 14px; padding: 20px;
+    border: 1px solid #E2E8F0; margin-bottom: 1rem;
+}
+.info-item .info-label {
+    font-size: 0.72rem; color: #94A3B8; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;
+}
+.info-item .info-value {
+    font-size: 0.92rem; color: #0F172A; font-weight: 600;
+}
+.info-item .info-sub {
+    font-size: 0.75rem; color: #64748B; margin-top: 2px;
+}
+
+/* ── Confidence grid ─────────────────────────────── */
+.conf-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    background: #fff; border-radius: 14px; padding: 20px;
+    border: 1px solid #E2E8F0; margin-bottom: 0.5rem;
+}
+.conf-item .conf-label {
+    font-size: 0.72rem; color: #94A3B8; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;
+}
+.conf-item .conf-value {
+    font-size: 1.35rem; color: #0F172A; font-weight: 700;
+}
+
+/* ── Market intelligence 3-col grid ──────────────── */
+.market-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    margin-bottom: 0.5rem;
+}
+.market-card {
+    background: #fff; border-radius: 14px; padding: 18px;
+    border: 1px solid #E2E8F0;
+}
+.market-card .mk-label {
+    font-size: 0.72rem; color: #94A3B8; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px;
+}
+.market-card .mk-value {
+    font-size: 1.4rem; color: #0F172A; font-weight: 700;
+}
+
+/* ── Download buttons ────────────────────────────── */
+.dl-grid {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+}
+
+/* ── Programme badge ─────────────────────────────── */
+.programme-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 6px;
+    background: #EFF6FF; color: #2563EB; font-size: 0.75rem;
+    font-weight: 600; margin-top: 8px;
+}
+
+/* ── Confidence notes ────────────────────────────── */
+.conf-notes {
+    background: #F8FAFC; border-radius: 10px; padding: 14px 18px;
+    border: 1px solid #E2E8F0; margin-top: 8px;
+}
+.conf-notes li {
+    font-size: 0.78rem; color: #64748B; margin-bottom: 4px;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+    .metric-grid, .insight-grid, .market-grid { grid-template-columns: 1fr 1fr; }
+    .conf-grid { grid-template-columns: 1fr 1fr; }
+    .img-gallery { grid-template-columns: 1fr; }
+}
+
+/* ── Streamlit overrides ─────────────────────────── */
+.stButton > button {
+    border-radius: 10px !important; font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+}
+[data-testid="stMetric"] { display: none !important; }
+div.stTabs [data-baseweb="tab-list"] { display: none; }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
+# Helper: numpy image → base64 data URI for embedding in HTML
+# ---------------------------------------------------------------------------
+
+def _img_to_base64(image_array: np.ndarray) -> str:
+    """Convert (C,H,W) or (H,W,3) uint8 image to base64 PNG data URI."""
+    from PIL import Image
+    rgb = prepare_display_rgb(image_array)
+    pil = Image.fromarray(rgb)
+    buf = io.BytesIO()
+    pil.save(buf, format="PNG")
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
+
+
+def _fig_to_base64(fig) -> str:
+    """Convert matplotlib figure to base64 PNG data URI."""
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=120, bbox_inches="tight", facecolor="#111827")
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
+
+
+def _format_smart(value: float, unit: str) -> tuple:
+    """Auto-scale values for display (kW→MW, kWh→GWh etc)."""
+    if unit == "kW" and value >= 1000:
+        return f"{value / 1000:,.1f}", "MW"
+    if unit == "kWh" and value >= 1_000_000:
+        return f"{value / 1_000_000:,.1f}", "GWh"
+    if unit == "kWh" and value >= 1000:
+        return f"{value / 1000:,.1f}", "MWh"
+    return f"{value:,.0f}", unit
 
 
 # ---------------------------------------------------------------------------
@@ -96,10 +428,10 @@ market_records = _load_market()
 
 
 # ---------------------------------------------------------------------------
-# Sidebar — configuration
+# Sidebar — configuration (collapsed by default)
 # ---------------------------------------------------------------------------
 
-st.sidebar.header("⚙️ Configuration")
+st.sidebar.header("⚙️ Settings")
 
 data_mode = st.sidebar.radio(
     "Data Mode",
@@ -112,7 +444,6 @@ st.sidebar.subheader("📍 Location")
 location_names = sorted(set(
     list(baselines.keys()) + list(policy_records.keys()) + list(market_records.keys())
 ))
-# Prettify for display
 display_names = []
 for k in location_names:
     rec = baselines.get(k) or policy_records.get(k) or market_records.get(k)
@@ -122,18 +453,12 @@ if not display_names:
     display_names = ["Default"]
 
 selected_location_display = st.sidebar.selectbox(
-    "City / Region",
-    display_names,
-    index=0,
+    "City / Region", display_names, index=0,
     help="Select a location for yield baselines and policy context.",
 )
 selected_location_key = selected_location_display.lower()
 
-use_baseline = st.sidebar.checkbox(
-    "Use location yield baseline",
-    value=True,
-    help="Override monthly/annual generation with location-specific data.",
-)
+use_baseline = st.sidebar.checkbox("Use location yield baseline", value=True)
 
 # --- Solar assumptions ---
 st.sidebar.subheader("Solar Assumptions")
@@ -149,7 +474,6 @@ config = SolarConfig(
     monthly_generation_kwh_per_kw=monthly_gen,
 )
 
-# Apply yield baseline if selected
 active_baseline = None
 if use_baseline and selected_location_key in baselines:
     active_baseline = baselines[selected_location_key]
@@ -159,7 +483,6 @@ st.sidebar.subheader("Vectorization")
 min_area = st.sidebar.number_input("Min polygon area (filter)", value=25.0, min_value=1.0)
 simplify_tol = st.sidebar.slider("Simplify tolerance", 0.0, 5.0, 1.0)
 
-# --- Debug / overlay toggles ---
 st.sidebar.subheader("🔧 Debug & Overlays")
 show_alignment_debug = st.sidebar.checkbox("Show alignment debug view", value=False)
 load_policy_overlays = st.sidebar.checkbox("Load policy/market overlays", value=True)
@@ -175,53 +498,36 @@ warnings_list: list[str] = []
 if data_mode == "Synthetic demo":
     seed = st.sidebar.number_input("Random seed", value=42, min_value=0)
     n_buildings = st.sidebar.slider("Num buildings", 3, 20, 8)
-
     image, mask, transform, crs = generate_synthetic_tile(
         num_buildings=n_buildings, seed=int(seed)
     )
     warnings_list.append("⚠️ Using synthetic data — no real CRS. Area estimates are pixel-based.")
-
 else:
-    # SpaceNet tile mode
     st.sidebar.subheader("Data Paths")
     data_dir = Path("data/raw")
-
-    # Auto-discover tiles
     img_dir = data_dir / "images"
     if img_dir.exists():
         available = sorted(img_dir.glob("*.tif"))
         if available:
             selected = st.sidebar.selectbox(
-                "Select tile",
-                available,
-                format_func=lambda p: p.name,
+                "Select tile", available, format_func=lambda p: p.name,
             )
             if selected:
                 image, transform, crs = load_image(selected)
-
-                # Look for matching mask/label
                 mask_path = data_dir / "masks" / selected.name
                 label_stem = selected.stem
                 label_path = data_dir / "labels" / f"{label_stem}.geojson"
-
                 if mask_path.exists():
                     mask, _, _ = load_or_create_mask(selected, mask_path)
                 elif label_path.exists():
                     mask, _, _ = load_or_create_mask(selected, label_path)
                 else:
-                    st.warning(
-                        f"No mask/label found for {selected.name}. "
-                        f"Looking in masks/ or labels/ directories."
-                    )
+                    st.warning(f"No mask/label found for {selected.name}.")
         else:
-            st.info("No .tif files found in `data/raw/images/`. Place SpaceNet tiles there.")
+            st.info("No .tif files found in `data/raw/images/`.")
     else:
-        st.info(
-            "Create `data/raw/images/` and `data/raw/masks/` (or `labels/`) directories, "
-            "then add SpaceNet tiles."
-        )
+        st.info("Create `data/raw/images/` and `data/raw/masks/` directories.")
 
-    # Upload fallback
     uploaded = st.sidebar.file_uploader("Or upload a GeoTIFF", type=["tif", "tiff"])
     if uploaded is not None:
         import tempfile
@@ -229,54 +535,61 @@ else:
             tmp.write(uploaded.read())
             tmp_path = tmp.name
         image, transform, crs = load_image(tmp_path)
-        st.sidebar.info("Uploaded image loaded. Mask will need to be provided separately or use GT mode.")
 
 
-# ---------------------------------------------------------------------------
-# Pipeline execution
-# ---------------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════════
+# TOP NAVBAR
+# ═══════════════════════════════════════════════════════════════════════════
+
+st.markdown("""
+<div class="top-nav">
+    <div class="top-nav-brand">
+        <div class="logo">☀️</div>
+        <div>
+            <h1>Solar Rooftop Analyzer</h1>
+            <p>AI-powered solar potential assessment</p>
+        </div>
+    </div>
+    <div class="top-nav-actions">
+        <span class="btn-settings">⚙️ Settings</span>
+        <span class="btn-primary-custom">📤 Upload Satellite Image</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PIPELINE — runs automatically when data is available
+# ═══════════════════════════════════════════════════════════════════════════
 
 if image is not None and mask is not None:
     run = st.button("🚀 Run Pipeline", type="primary", use_container_width=True)
 
     if run:
-        # Determine if polygons will be in pixel-coord mode
         use_pixel_coords = (crs is None)
-
-        # CRS check
         crs_units = check_crs_units(crs)
         if crs is None:
             warnings_list.append("⚠️ No CRS — all coordinates are in pixel space.")
 
-        # Vectorize
-        with st.spinner("Vectorizing mask → polygons..."):
+        with st.spinner("Analyzing rooftops..."):
             polygons = mask_to_polygons(
-                mask,
-                transform=transform,
-                crs=crs,
-                min_area=min_area,
-                simplify_tolerance=simplify_tol,
+                mask, transform=transform, crs=crs,
+                min_area=min_area, simplify_tolerance=simplify_tol,
                 use_pixel_coords=use_pixel_coords,
             )
 
         if not polygons:
             st.error("No polygons found! Check mask threshold or min_area filter.")
         else:
-            # ---------------------------------------------------------
-            # CRITICAL: Compute the EFFECTIVE transform that was actually
-            # used inside mask_to_polygons to create the polygon coords.
-            # This must match what we pass to geo_to_pixel_coords() in viz.
-            # ---------------------------------------------------------
+            # Compute effective transform
             if use_pixel_coords or transform is None:
                 effective_transform = from_bounds(
-                    0, 0,
-                    mask.shape[1], mask.shape[0],
+                    0, 0, mask.shape[1], mask.shape[0],
                     mask.shape[1], mask.shape[0],
                 )
             else:
                 effective_transform = transform
 
-            # Alignment check
             if crs is not None:
                 aligned, align_warnings = validate_polygon_raster_alignment(
                     (transform.c, transform.f + transform.e * mask.shape[0],
@@ -285,51 +598,351 @@ if image is not None and mask is not None:
                 )
                 warnings_list.extend(align_warnings)
 
-            # Alignment debug info
             align_debug = alignment_debug_info(
                 effective_transform, mask.shape, polygons, crs
             )
 
-            # Enrich with feasibility (Phase 4)
             with st.spinner("Computing feasibility..."):
                 polygons = enrich_polygons_with_feasibility(polygons, image=image, mask=mask)
 
-            # Solar estimation
             with st.spinner("Computing solar estimates..."):
                 per_roof, aggregate = estimate_all_roofs(polygons, config)
 
-            # Compute confidence (Phase 6)
             tile_conf = compute_tile_confidence(
-                imagery_date=None,
-                num_polygons=len(polygons),
+                imagery_date=None, num_polygons=len(polygons),
                 min_area_used=min_area,
                 overlap_ratio=align_debug.get("overlap_ratio") if align_debug else None,
                 alignment_warnings=[w for w in warnings_list if "overlap" in w.lower()],
                 has_crs=(crs is not None),
             )
 
-            # ============================================================
-            # Visualization — pass EFFECTIVE transform for correct overlay
-            # ============================================================
-            with st.spinner("Generating visualizations..."):
-                fig = side_by_side(
+            # Generate visualization images
+            with st.spinner("Rendering..."):
+                # Overlay figure
+                fig_overlay, ax_overlay = plt.subplots(1, 1, figsize=(8, 8))
+                overlay_polygons(
+                    image, polygons, ax=ax_overlay,
+                    transform=effective_transform,
+                    title="",
+                )
+                overlay_b64 = _fig_to_base64(fig_overlay)
+
+                # Side-by-side
+                fig_sbs = side_by_side(
                     image, mask, polygons,
                     transform=effective_transform,
                 )
+                sbs_b64 = _fig_to_base64(fig_sbs)
 
-            # === Display ===
-            st.subheader("📊 Results")
+                # Raw image
+                raw_b64 = _img_to_base64(image)
 
-            # Warnings panel
+            # ── Extract values ──
+            num_roofs = aggregate["num_roofs"]
+            sfx = aggregate.get("label_suffix", "")
+            total_area = aggregate["total_roof_area"]
+            area_unit = aggregate["total_roof_area_unit"]
+            total_kw = aggregate["total_system_kw"]
+            total_monthly = aggregate["total_monthly_kwh"]
+            total_annual = aggregate["total_annual_kwh"]
+
+            cap_val, cap_unit = _format_smart(total_kw, "kW")
+            month_val, month_unit = _format_smart(total_monthly, "kWh")
+            annual_val, annual_unit = _format_smart(total_annual, "kWh")
+
+            # Warnings
             if warnings_list:
                 for w_msg in warnings_list:
                     st.warning(w_msg)
 
-            # Main figure
-            st.pyplot(fig)
-            plt.close(fig)
+            # ════════════════════════════════════════════════════════
+            # TAB BAR + BUILDINGS BADGE
+            # ════════════════════════════════════════════════════════
 
-            # Alignment debug panel (Phase 1)
+            st.markdown(f"""
+            <div class="tab-bar">
+                <div class="tab-pills">
+                    <div class="tab-pill">Satellite</div>
+                    <div class="tab-pill">Building Detection</div>
+                    <div class="tab-pill active">Solar Analysis</div>
+                </div>
+                <div class="buildings-badge-wrapper">
+                    <div class="buildings-badge">
+                        <span class="dot"></span>
+                        🏢 {num_roofs} Buildings Detected
+                    </div>
+                    <div class="hover-overlay">
+                        <img src="data:image/png;base64,{overlay_b64}" alt="Roof Polygon Overlay"/>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════
+            # IMAGE GALLERY — 2 panels
+            # ════════════════════════════════════════════════════════
+
+            st.markdown(f"""
+            <div class="img-gallery">
+                <div class="img-card">
+                    <img src="data:image/png;base64,{overlay_b64}" alt="Solar Estimate"/>
+                    <div class="img-label">☀️ Solar Estimate Summary</div>
+                </div>
+                <div class="img-card">
+                    <img src="data:image/png;base64,{raw_b64}" alt="Satellite"/>
+                    <div class="img-label">🛰️ Intensity / Solar Deployment</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════
+            # 4 METRIC CARDS
+            # ════════════════════════════════════════════════════════
+
+            st.markdown(f"""
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="icon-box icon-blue">🏢</div>
+                    <div class="value">{num_roofs}</div>
+                    <div class="label">Total Rooftops</div>
+                    <div class="sublabel">buildings detected</div>
+                </div>
+                <div class="metric-card">
+                    <div class="icon-box icon-indigo">📐</div>
+                    <div class="value">{total_area:,.0f}</div>
+                    <div class="label">Roof Area</div>
+                    <div class="sublabel">{area_unit} analyzed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="icon-box icon-amber">⚡</div>
+                    <div class="value">{cap_val} {cap_unit}</div>
+                    <div class="label">System Capacity</div>
+                    <div class="sublabel">total potential</div>
+                </div>
+                <div class="metric-card">
+                    <div class="icon-box icon-green">📊</div>
+                    <div class="value">{month_val} {month_unit}</div>
+                    <div class="label">Monthly Output</div>
+                    <div class="sublabel">estimated generation</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════
+            # ANNUAL BANNER
+            # ════════════════════════════════════════════════════════
+
+            baseline_note = ""
+            if active_baseline:
+                baseline_note = f"Based on {active_baseline.location_name} yield data ({active_baseline.source_name})"
+            else:
+                baseline_note = "Potential yearly solar energy output"
+
+            st.markdown(f"""
+            <div class="annual-banner">
+                <div class="left-side">
+                    <div class="icon-circle">⚡</div>
+                    <div>
+                        <div class="banner-label">Estimated Annual Generation</div>
+                        <div class="banner-value">{annual_val} {annual_unit}</div>
+                        <div class="banner-sub">{baseline_note}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════
+            # KEY INSIGHTS — 3 cards
+            # ════════════════════════════════════════════════════════
+
+            avg_kw = total_kw / num_roofs if num_roofs else 0
+            avg_kw_str = f"{avg_kw:,.1f}"
+            avg_monthly = total_monthly / num_roofs if num_roofs else 0
+            avg_monthly_str = f"{avg_monthly:,.0f}"
+
+            st.markdown("""<div style="font-size:1.05rem;font-weight:700;color:#0F172A;margin-bottom:10px;">Key Insights</div>""",
+                        unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <div class="insight-grid">
+                <div class="insight-card">
+                    <div class="insight-icon icon-green">🟢</div>
+                    <div class="insight-title">High Potential Area</div>
+                    <div class="insight-text">
+                        This area shows strong solar potential with
+                        {num_roofs} suitable rooftops identified.
+                    </div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-icon icon-blue">⚡</div>
+                    <div class="insight-title">Average System Size</div>
+                    <div class="insight-text">
+                        Typical rooftop could fit a {avg_kw_str} kW
+                        system, generating ~{avg_monthly_str} kWh
+                        monthly.
+                    </div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-icon icon-amber">⚠️</div>
+                    <div class="insight-title">Site Survey Required</div>
+                    <div class="insight-text">
+                        Professional assessment needed for
+                        roof condition, shading, and structural
+                        capacity.
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════
+            # POLICY & INCENTIVES
+            # ════════════════════════════════════════════════════════
+
+            st.markdown("""
+            <div class="section-header">
+                <div class="sh-icon">📋</div>
+                Policy & Incentives
+            </div>
+            """, unsafe_allow_html=True)
+
+            policy_rec = policy_records.get(selected_location_key) if load_policy_overlays else None
+            if policy_rec:
+                tariff_str = ""
+                if policy_rec.example_tariff_residential_per_kwh is not None:
+                    tariff_str = f"{policy_rec.example_tariff_residential_per_kwh} {policy_rec.example_tariff_unit}/kWh"
+
+                subsidy_str = "✅ Yes" if policy_rec.subsidy_available else "❌ No"
+
+                st.markdown(f"""
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Compensation</div>
+                        <div class="info-value">{policy_rec.compensation_regime}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Example Tariff</div>
+                        <div class="info-value">{tariff_str}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Subsidy</div>
+                        <div class="info-value">{subsidy_str}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Source</div>
+                        <div class="info-value">{policy_rec.policy_source} ({policy_rec.policy_date})</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                if policy_rec.subsidy_notes:
+                    st.markdown(f"""<div style="font-size:0.82rem;color:#475569;margin:-0.5rem 0 0.5rem 0;padding:0 4px;">{policy_rec.subsidy_notes}</div>""", unsafe_allow_html=True)
+                if policy_rec.notes:
+                    st.markdown(f"""<div style="font-size:0.78rem;color:#64748B;margin-bottom:0.5rem;padding:0 4px;">{policy_rec.notes}</div>""", unsafe_allow_html=True)
+                if policy_rec.program_eligibility_tag if hasattr(policy_rec, 'program_eligibility_tag') else None:
+                    st.markdown(f"""<div class="programme-badge">{policy_rec.program_eligibility_tag}</div>""", unsafe_allow_html=True)
+            else:
+                st.caption("No policy data loaded for this location.")
+
+            # ════════════════════════════════════════════════════════
+            # MARKET INTELLIGENCE
+            # ════════════════════════════════════════════════════════
+
+            st.markdown("""
+            <div class="section-header">
+                <div class="sh-icon">📊</div>
+                Market Intelligence
+            </div>
+            """, unsafe_allow_html=True)
+
+            market_rec = market_records.get(selected_location_key) if load_policy_overlays else None
+            if market_rec:
+                ad_score = f"{market_rec.adoption_density_score:.0%}" if market_rec.adoption_density_score is not None else "N/A"
+                am_score = f"{market_rec.adoption_momentum_score:.0%}" if market_rec.adoption_momentum_score is not None else "N/A"
+                pv_dens = f"{market_rec.installed_pv_density_per_km2:.1f} kW/km²" if market_rec.installed_pv_density_per_km2 is not None else "N/A"
+
+                st.markdown(f"""
+                <div class="market-grid">
+                    <div class="market-card">
+                        <div class="mk-label">Adoption Density</div>
+                        <div class="mk-value">{ad_score}</div>
+                    </div>
+                    <div class="market-card">
+                        <div class="mk-label">Market Maturity</div>
+                        <div class="mk-value">{market_rec.market_maturity_segment}</div>
+                    </div>
+                    <div class="market-card">
+                        <div class="mk-label">PV Density</div>
+                        <div class="mk-value">{pv_dens}</div>
+                    </div>
+                </div>
+                <div class="market-grid" style="margin-top: -6px;">
+                    <div class="market-card">
+                        <div class="mk-label">Adoption Momentum</div>
+                        <div class="mk-value">{am_score}</div>
+                    </div>
+                    <div class="market-card">
+                        <div class="mk-label">Customer Mix</div>
+                        <div class="mk-value">{market_rec.customer_mix_proxy}</div>
+                    </div>
+                    <div class="market-card" style="display:flex;flex-direction:column;justify-content:center;">
+                        <div class="mk-label">Programme</div>
+                        <div class="mk-value" style="font-size:0.9rem;">{market_rec.program_eligibility_tag or 'N/A'}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                if market_rec.notes:
+                    st.markdown(f"""<div style="font-size:0.78rem;color:#64748B;margin-top:4px;">{market_rec.notes}</div>""", unsafe_allow_html=True)
+            else:
+                st.warning("No market intelligence layer loaded for this tile/city.")
+
+            # ════════════════════════════════════════════════════════
+            # DATA CONFIDENCE / QUALITY
+            # ════════════════════════════════════════════════════════
+
+            st.markdown("""
+            <div class="section-header">
+                <div class="sh-icon">🛡️</div>
+                Data Confidence / Quality
+            </div>
+            """, unsafe_allow_html=True)
+
+            seg_label = f"{tile_conf.segmentation_confidence:.1%}" if tile_conf.segmentation_confidence else "N/A"
+            vec_label = f"{tile_conf.vectorization_confidence:.1%}"
+
+            st.markdown(f"""
+            <div class="conf-grid">
+                <div class="conf-item">
+                    <div class="conf-label">Overall Confidence</div>
+                    <div class="conf-value">{tile_conf.overall_confidence_score:.0f}/100</div>
+                </div>
+                <div class="conf-item">
+                    <div class="conf-label">Segmentation Confidence</div>
+                    <div class="conf-value">{seg_label}</div>
+                </div>
+                <div class="conf-item">
+                    <div class="conf-label">Data Recency</div>
+                    <div class="conf-value">{tile_conf.data_recency_label}</div>
+                </div>
+                <div class="conf-item">
+                    <div class="conf-label">Vectorization Confidence</div>
+                    <div class="conf-value">{vec_label}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if tile_conf.uncertainty_notes:
+                notes_html = "".join(f"<li>{n}</li>" for n in tile_conf.uncertainty_notes)
+                st.markdown(f"""
+                <div class="conf-notes">
+                    <ul style="margin:0;padding-left:18px;">{notes_html}</ul>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════
+            # ALIGNMENT DEBUG (if enabled)
+            # ════════════════════════════════════════════════════════
+
             if show_alignment_debug and align_debug:
                 with st.expander("🔍 Alignment Debug View", expanded=True):
                     col_dbg1, col_dbg2 = st.columns(2)
@@ -343,227 +956,65 @@ if image is not None and mask is not None:
                         ))
                         st.markdown(f"**Overlap ratio:** {align_debug['overlap_ratio']:.2%}")
                         st.markdown(f"**Coord space:** {align_debug['coordinate_space']}")
-                        if align_debug["crs_epsg"]:
-                            st.markdown(f"**CRS EPSG:** {align_debug['crs_epsg']}")
                     with col_dbg2:
                         for note in align_debug.get("notes", []):
                             st.info(note)
 
-                    # Debug figure
                     dbg_fig = alignment_debug_figure(
                         image, polygons, transform=effective_transform
                     )
                     st.pyplot(dbg_fig)
                     plt.close(dbg_fig)
 
-            # Metrics card
-            st.subheader("☀️ Solar Estimate Summary")
-            sfx = aggregate.get("label_suffix", "")
-            cols = st.columns(4)
-            cols[0].metric("Roofs Detected", aggregate["num_roofs"])
-            cols[1].metric(
-                f"Total Roof Area ({aggregate['total_roof_area_unit']})",
-                f"{aggregate['total_roof_area']:,.1f}{sfx}",
-            )
-            cols[2].metric("System Capacity", f"{aggregate['total_system_kw']:,.2f} kW{sfx}")
-            cols[3].metric("Monthly Generation", f"{aggregate['total_monthly_kwh']:,.0f} kWh{sfx}")
+            # ════════════════════════════════════════════════════════
+            # DOWNLOADS
+            # ════════════════════════════════════════════════════════
 
-            st.metric("Estimated Annual Generation", f"{aggregate['total_annual_kwh']:,.0f} kWh{sfx}")
+            st.markdown("""
+            <div class="section-header">
+                <div class="sh-icon">📥</div>
+                Downloads
+            </div>
+            """, unsafe_allow_html=True)
 
-            # Yield source info
-            if active_baseline:
-                st.info(
-                    f"📍 **Yield baseline:** {active_baseline.location_name} "
-                    f"({active_baseline.region}) — "
-                    f"{active_baseline.annual_yield_kwh_per_kw} kWh/kW/yr | "
-                    f"Source: {active_baseline.source_name} | "
-                    f"Confidence: {active_baseline.confidence}\n\n"
-                    f"_{active_baseline.source_note}_"
-                )
-            else:
-                st.caption("Using default yield assumptions (no location baseline selected).")
-
-            # Per-roof table with feasibility
-            with st.expander("📋 Per-Roof Details"):
-                for r in per_roof:
-                    pid = r['polygon_id']
-                    # Find matching polygon for feasibility data
-                    poly = polygons[pid] if pid < len(polygons) else {}
-                    ctype = poly.get("customer_type_proxy", "—")
-                    fconf = poly.get("feasibility_confidence_score", "—")
-
-                    st.text(
-                        f"Roof #{pid:>3}: "
-                        f"area={r['roof_area']:>8.1f} {r['roof_area_unit']}, "
-                        f"usable={r['usable_area']:>8.1f}, "
-                        f"kW={r['estimated_system_kw']:>6.2f}, "
-                        f"kWh/mo={r['estimated_monthly_kwh']:>8.1f}  "
-                        f"[{ctype} | feasibility:{fconf}%]"
-                    )
-
-            # Assumptions
-            with st.expander("🔧 Assumptions Used"):
-                st.markdown(f"**Label:** {config.assumptions_label}")
-                st.markdown(f"- Roof usability: {config.roof_usability_factor}")
-                st.markdown(f"- Panel density: {config.panel_power_density_kw_per_m2} kW/m²")
-                st.markdown(f"- Performance ratio: {config.performance_ratio}")
-                st.markdown(f"- Monthly gen factor: {config.monthly_generation_kwh_per_kw} kWh/kW")
-
-            # Limitations
-            with st.expander("⚠️ Confidence / Limitations"):
-                for lim in config.limitations:
-                    st.markdown(f"- {lim}")
-
-            st.info(config.pre_assessment_disclaimer)
-
-            # ============================================
-            # NEW PANELS (Phases 3, 5, 6)
-            # ============================================
-
-            # --- Policy & Incentives (Phase 3) ---
-            st.subheader("📋 Policy & Incentives")
-            policy_rec = policy_records.get(selected_location_key) if load_policy_overlays else None
-            if policy_rec:
-                pc1, pc2 = st.columns(2)
-                with pc1:
-                    st.markdown(f"**Compensation:** {policy_rec.compensation_regime}")
-                    st.markdown(f"**Subsidy:** {'✅ Yes' if policy_rec.subsidy_available else '❌ No'}")
-                    if policy_rec.subsidy_notes:
-                        st.markdown(f"_{policy_rec.subsidy_notes}_")
-                with pc2:
-                    if policy_rec.example_tariff_residential_per_kwh is not None:
-                        st.markdown(
-                            f"**Example tariff:** "
-                            f"{policy_rec.example_tariff_residential_per_kwh} "
-                            f"{policy_rec.example_tariff_unit}/kWh"
-                        )
-                    st.markdown(f"**Source:** {policy_rec.policy_source} ({policy_rec.policy_date})")
-                    if policy_rec.notes:
-                        st.caption(policy_rec.notes)
-            else:
-                st.caption("No policy data loaded for this location.")
-
-            # --- Market Intelligence (Phase 5) ---
-            st.subheader("📊 Market Intelligence")
-            market_rec = market_records.get(selected_location_key) if load_policy_overlays else None
-            if market_rec:
-                mc1, mc2, mc3 = st.columns(3)
-                with mc1:
-                    if market_rec.adoption_density_score is not None:
-                        st.metric("Adoption Density", f"{market_rec.adoption_density_score:.0%}")
-                    if market_rec.adoption_momentum_score is not None:
-                        st.metric("Adoption Momentum", f"{market_rec.adoption_momentum_score:.0%}")
-                with mc2:
-                    st.metric("Market Maturity", market_rec.market_maturity_segment)
-                    st.metric("Customer Mix", market_rec.customer_mix_proxy)
-                with mc3:
-                    if market_rec.installed_pv_density_per_km2 is not None:
-                        st.metric("PV Density", f"{market_rec.installed_pv_density_per_km2:.1f} kW/km²")
-                    if market_rec.program_eligibility_tag:
-                        st.markdown(f"**Programme:** {market_rec.program_eligibility_tag}")
-                if market_rec.notes:
-                    st.caption(market_rec.notes)
-            else:
-                st.warning("No market intelligence layer loaded for this tile/city.")
-
-            # --- Data Confidence / Quality (Phase 6) ---
-            st.subheader("🛡️ Data Confidence / Quality")
-            qc1, qc2, qc3 = st.columns(3)
-            with qc1:
-                st.metric("Overall Confidence", f"{tile_conf.overall_confidence_score:.0f}/100")
-                st.metric("Data Recency", tile_conf.data_recency_label)
-            with qc2:
-                seg_label = f"{tile_conf.segmentation_confidence:.1%}" if tile_conf.segmentation_confidence else "N/A"
-                st.metric("Segmentation Confidence", seg_label)
-                st.metric("Vectorization Confidence", f"{tile_conf.vectorization_confidence:.1%}")
-            with qc3:
-                if tile_conf.uncertainty_notes:
-                    for note in tile_conf.uncertainty_notes:
-                        st.caption(f"• {note}")
-
-            # === Exports ===
-            st.subheader("📥 Downloads")
-
-            # --- Row 1: Original exports (unchanged) ---
             col_dl1, col_dl2, col_dl3, col_dl4 = st.columns(4)
 
-            # Overlay PNG
             with col_dl1:
                 buf = io.BytesIO()
-                fig2 = side_by_side(
-                    image, mask, polygons,
-                    transform=effective_transform,
-                )
+                fig2 = side_by_side(image, mask, polygons, transform=effective_transform)
                 fig2.savefig(buf, format="png", dpi=150, bbox_inches="tight")
                 plt.close(fig2)
                 buf.seek(0)
-                st.download_button(
-                    "⬇️ Overlay PNG",
-                    data=buf,
-                    file_name="solar_overlay.png",
-                    mime="image/png",
-                )
+                st.download_button("📸 Overlay PNG", data=buf, file_name="solar_overlay.png", mime="image/png")
 
-            # GeoJSON
             with col_dl2:
+                from shapely.geometry import mapping
                 features = []
                 for i, poly in enumerate(polygons):
-                    from shapely.geometry import mapping
                     features.append({
-                        "type": "Feature",
-                        "id": i,
-                        "properties": {
-                            "id": i,
-                            "area_value": round(poly["area_value"], 2),
-                            "area_unit": poly["area_unit"],
-                        },
+                        "type": "Feature", "id": i,
+                        "properties": {"id": i, "area_value": round(poly["area_value"], 2), "area_unit": poly["area_unit"]},
                         "geometry": mapping(poly["geometry"]),
                     })
-                geojson_str = json.dumps({
-                    "type": "FeatureCollection",
-                    "features": features,
-                }, indent=2)
-                st.download_button(
-                    "⬇️ GeoJSON",
-                    data=geojson_str,
-                    file_name="roof_polygons.geojson",
-                    mime="application/json",
-                )
+                geojson_str = json.dumps({"type": "FeatureCollection", "features": features}, indent=2)
+                st.download_button("📍 GeoJSON", data=geojson_str, file_name="roof_polygons.geojson", mime="application/json")
 
-            # Meta JSON sidecar
             with col_dl3:
                 meta_sidecar = json.dumps({
-                    "source_raster": None,
-                    "crs_epsg": crs.to_epsg() if crs else None,
+                    "source_raster": None, "crs_epsg": crs.to_epsg() if crs else None,
                     "coordinates": "georeferenced" if crs else "pixel",
                     "num_polygons": len(polygons),
-                    "warning": (
-                        "GeoJSON consumers may assume WGS84. "
-                        "Use this metadata sidecar to interpret coordinates."
-                    ),
                 }, indent=2)
-                st.download_button(
-                    "⬇️ Meta JSON",
-                    data=meta_sidecar,
-                    file_name="footprints.meta.json",
-                    mime="application/json",
-                )
+                st.download_button("📄 Meta JSON", data=meta_sidecar, file_name="footprints.meta.json", mime="application/json")
 
-            # Report
             with col_dl4:
                 report = format_report(per_roof, aggregate, config)
-                st.download_button(
-                    "⬇️ Report (TXT)",
-                    data=report,
-                    file_name="solar_report.txt",
-                    mime="text/plain",
-                )
+                st.download_button("📝 Report (TXT)", data=report, file_name="solar_report.txt", mime="text/plain")
 
-            # --- Row 2: New enriched exports (Phase 7) ---
+            # Enriched exports row
             st.caption("**Enriched exports:**")
             col_e1, col_e2, col_e3, col_e4 = st.columns(4)
 
-            # Enriched roof CSV
             with col_e1:
                 csv_buf = io.StringIO()
                 fieldnames = [
@@ -586,14 +1037,8 @@ if image is not None and mask is not None:
                     row["roof_plane_tilt"] = poly.get("roof_plane_tilt", "")
                     row["heritage_flag"] = poly.get("heritage_or_restricted_zone_flag", "")
                     writer.writerow(row)
-                st.download_button(
-                    "⬇️ Enriched CSV",
-                    data=csv_buf.getvalue(),
-                    file_name="roofs_enriched.csv",
-                    mime="text/csv",
-                )
+                st.download_button("📊 Enriched CSV", data=csv_buf.getvalue(), file_name="roofs_enriched.csv", mime="text/csv")
 
-            # Tile summary JSON
             with col_e2:
                 tile_summary = {
                     "export_timestamp": datetime.now(timezone.utc).isoformat(),
@@ -614,14 +1059,8 @@ if image is not None and mask is not None:
                     "confidence": confidence_to_dict(tile_conf),
                     "disclaimers": [config.pre_assessment_disclaimer] + config.limitations,
                 }
-                st.download_button(
-                    "⬇️ Tile Summary JSON",
-                    data=json.dumps(tile_summary, indent=2),
-                    file_name="tile_summary.json",
-                    mime="application/json",
-                )
+                st.download_button("📋 Tile Summary JSON", data=json.dumps(tile_summary, indent=2), file_name="tile_summary.json", mime="application/json")
 
-            # Policy/Market snapshot JSON
             with col_e3:
                 snapshot = {
                     "selected_location": selected_location_display,
@@ -635,35 +1074,33 @@ if image is not None and mask is not None:
                         "confidence": active_baseline.confidence,
                     } if active_baseline else None,
                 }
-                st.download_button(
-                    "⬇️ Policy/Market Snapshot",
-                    data=json.dumps(snapshot, indent=2),
-                    file_name="policy_market_snapshot.json",
-                    mime="application/json",
-                )
+                st.download_button("📸 Policy/Market Snapshot", data=json.dumps(snapshot, indent=2), file_name="policy_market_snapshot.json", mime="application/json")
 
-            # Debug log (if debug mode)
             with col_e4:
                 if show_alignment_debug and align_debug:
                     debug_log = json.dumps({
-                        "alignment_debug": {
-                            k: (list(v) if isinstance(v, tuple) else v)
-                            for k, v in align_debug.items()
-                        },
+                        "alignment_debug": {k: (list(v) if isinstance(v, tuple) else v) for k, v in align_debug.items()},
                         "confidence": confidence_to_dict(tile_conf),
                         "warnings": warnings_list,
                     }, indent=2)
-                    st.download_button(
-                        "⬇️ Debug Log",
-                        data=debug_log,
-                        file_name="alignment_debug_log.json",
-                        mime="application/json",
-                    )
+                    st.download_button("🔍 Debug Log", data=debug_log, file_name="alignment_debug_log.json", mime="application/json")
                 else:
                     st.caption("Enable debug view for debug log export.")
 
+            # Disclaimer
+            st.markdown(f"""<div style="margin-top:1rem;padding:14px 18px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;font-size:0.78rem;color:#92400E;">{config.pre_assessment_disclaimer}</div>""", unsafe_allow_html=True)
+
 elif image is not None and mask is None:
     st.info("Image loaded but no mask available. Provide a mask/label file or switch to Synthetic mode.")
-
 else:
-    st.info("Select a data mode and tile to begin.")
+    # Landing state
+    st.markdown("""
+    <div style="text-align:center;padding:60px 20px;">
+        <div style="font-size:48px;margin-bottom:16px;">☀️</div>
+        <h2 style="color:#0F172A;font-weight:700;">Ready to Analyze</h2>
+        <p style="color:#64748B;max-width:480px;margin:0 auto;">
+            Select a data mode in the sidebar and click <strong>Run Pipeline</strong>
+            to start analyzing rooftop solar potential.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
