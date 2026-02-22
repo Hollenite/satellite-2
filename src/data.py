@@ -29,15 +29,27 @@ except ImportError:
 # Image loading
 # ---------------------------------------------------------------------------
 
-def load_image(path: str | Path) -> Tuple[np.ndarray, rasterio.Affine, Optional[object]]:
+def load_image(
+    path: str | Path,
+    default_gsd_m: float = 0.3,
+) -> Tuple[np.ndarray, rasterio.Affine, Optional[object]]:
     """
     Load a GeoTIFF image.
+
+    If the file has no CRS (common for plain satellite imagery), a default
+    ground-sample-distance (GSD) of *default_gsd_m* metres/pixel is assumed
+    and a projected CRS (EPSG:32643 — UTM 43N, covers Pune/Maharashtra) is
+    assigned so that downstream area calculations are in real square metres
+    instead of pixel².
 
     Returns:
         image  — np.ndarray with shape (bands, H, W)
         transform — rasterio Affine
         crs    — rasterio CRS or None
     """
+    from rasterio.crs import CRS
+    from rasterio.transform import from_bounds
+
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Image not found: {path}")
@@ -46,6 +58,19 @@ def load_image(path: str | Path) -> Tuple[np.ndarray, rasterio.Affine, Optional[
         image = src.read()  # (bands, H, W)
         transform = src.transform
         crs = src.crs
+
+    # If no CRS, apply a realistic GSD so areas are in m² not pixel²
+    if crs is None:
+        _, h, w = image.shape
+        origin_e, origin_n = 500_000.0, 2_050_000.0  # fake UTM origin
+        transform = from_bounds(
+            origin_e, origin_n,
+            origin_e + w * default_gsd_m,
+            origin_n + h * default_gsd_m,
+            w, h,
+        )
+        crs = CRS.from_epsg(32643)  # UTM 43N (Pune region)
+
     return image, transform, crs
 
 

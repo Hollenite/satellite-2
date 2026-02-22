@@ -445,45 +445,76 @@ def _format_smart(value: float, unit: str) -> tuple:
     return f"{value:,.0f}", unit
 
 
-def _compute_pm_surya_ghar_subsidy(system_kw: float) -> dict:
-    """Compute Indian central + state government subsidy per PM Surya Ghar scheme.
+def _compute_solar_savings(system_kw: float, annual_kwh: float, tariff: float) -> dict:
+    """Comprehensive savings calculator for Indian residential rooftop solar.
 
-    Subsidy chart (Residential):
+    Uses real-world data for Pune / Maharashtra:
+      - Installation cost : ~₹67,000 per kW (market average incl. installation)
+      - PM Surya Ghar subsidy (central + state)
+      - Annual electricity savings = generation × tariff
+      - Payback period = net cost / annual savings
+      - Lifetime benefit over 25 years
+
+    Subsidy chart (PM Surya Ghar Muft Bijli Yojana):
     ┌──────────┬──────────────┬──────────────┬─────────────┐
     │ Capacity │ Central Govt │ State Govt   │ Total       │
     ├──────────┼──────────────┼──────────────┼─────────────┤
     │ 1 kW     │ ₹30,000      │ ₹15,000      │ ₹45,000     │
     │ 2 kW     │ ₹60,000      │ ₹30,000      │ ₹90,000     │
     │ 3 kW     │ ₹78,000      │ ₹30,000      │ ₹1,08,000   │
-    │ 4 kW     │ ₹78,000      │ ₹30,000      │ ₹1,08,000   │
-    │ 5 kW     │ ₹78,000      │ ₹30,000      │ ₹1,08,000   │
+    │ 4–5 kW   │ ₹78,000      │ ₹30,000      │ ₹1,08,000   │
     └──────────┴──────────────┴──────────────┴─────────────┘
-
-    Central subsidy formula:
-      - First 2 kW : ₹30,000 per kW
-      - Beyond 2 kW: capped at ₹78,000 total
-    State subsidy formula:
-      - 1 kW       : ₹15,000
-      - 2+ kW      : ₹30,000 (cap)
     """
-    kw = min(system_kw, 5.0)  # subsidy applies up to 5 kW
-    if kw <= 0:
-        return {"central": 0, "state": 0, "total": 0}
+    INSTALLATION_COST_PER_KW = 67_000   # ₹/kW (avg. market rate)
+    SYSTEM_LIFESPAN_YEARS = 25
+    # Typical monthly consumption for a middle-class Indian household
+    AVG_MONTHLY_BILL_KWH = 250          # ~250 units/month baseline
 
-    # Central govt subsidy
-    if kw <= 2:
-        central = kw * 30_000
+    if system_kw <= 0 or annual_kwh <= 0:
+        return {
+            "central_subsidy": 0, "state_subsidy": 0, "total_subsidy": 0,
+            "gross_cost": 0, "net_cost": 0,
+            "annual_saving": 0, "payback_years": 0,
+            "lifetime_saving": 0, "bill_reduction_pct": 0,
+        }
+
+    # ── Subsidy calculation ──
+    capped_kw = min(system_kw, 5.0)     # subsidy caps at 5 kW
+    if capped_kw <= 2:
+        central = capped_kw * 30_000
     else:
-        central = 78_000  # capped
+        central = 78_000                # capped
+    state = 15_000 if capped_kw < 1.5 else 30_000
+    total_subsidy = central + state
 
-    # State govt subsidy
-    if kw < 1.5:
-        state = 15_000
-    else:
-        state = 30_000  # capped at 30k for 2+ kW
+    # ── Installation cost ──
+    gross_cost = system_kw * INSTALLATION_COST_PER_KW
+    net_cost = max(gross_cost - total_subsidy, 0)
 
-    total = central + state
-    return {"central": round(central), "state": round(state), "total": round(total)}
+    # ── Annual electricity savings ──
+    annual_saving = annual_kwh * tariff
+
+    # ── Payback period ──
+    payback_years = net_cost / annual_saving if annual_saving > 0 else 0
+
+    # ── Lifetime savings (over 25 years) ──
+    lifetime_saving = (annual_saving * SYSTEM_LIFESPAN_YEARS) - net_cost
+
+    # ── Bill reduction estimate ──
+    annual_consumption = AVG_MONTHLY_BILL_KWH * 12
+    bill_reduction_pct = min((annual_kwh / annual_consumption) * 100, 100) if annual_consumption > 0 else 0
+
+    return {
+        "central_subsidy": round(central),
+        "state_subsidy": round(state),
+        "total_subsidy": round(total_subsidy),
+        "gross_cost": round(gross_cost),
+        "net_cost": round(net_cost),
+        "annual_saving": round(annual_saving, 2),
+        "payback_years": round(payback_years, 1),
+        "lifetime_saving": round(lifetime_saving),
+        "bill_reduction_pct": round(bill_reduction_pct, 0),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -797,25 +828,30 @@ if image is not None and mask is not None:
             per_building_savings = []
             total_savings_electricity = 0
             total_subsidy = 0
+            total_net_cost = 0
+            total_gross_cost = 0
+            total_lifetime = 0
             for i, r in enumerate(per_roof):
                 sys_kw = r["estimated_system_kw"]
                 annual_kwh = r["estimated_annual_kwh"]
-                monthly_kwh = r["estimated_monthly_kwh"]
-                # Use actual values (now realistic with GSD-based m² areas)
-                annual_elec_saving = annual_kwh * tariff
-                subsidy = _compute_pm_surya_ghar_subsidy(sys_kw)
+                sv = _compute_solar_savings(sys_kw, annual_kwh, tariff)
                 per_building_savings.append({
                     "building_id": i + 1,
                     "system_kw": round(sys_kw, 2),
-                    "monthly_gen_kwh": round(monthly_kwh, 1),
                     "annual_gen_kwh": round(annual_kwh, 1),
-                    "central_subsidy": subsidy["central"],
-                    "state_subsidy": subsidy["state"],
-                    "total_subsidy": subsidy["total"],
-                    "annual_elec_saving": round(annual_elec_saving, 2),
+                    "gross_cost": sv["gross_cost"],
+                    "total_subsidy": sv["total_subsidy"],
+                    "net_cost": sv["net_cost"],
+                    "annual_saving": sv["annual_saving"],
+                    "payback_years": sv["payback_years"],
+                    "lifetime_saving": sv["lifetime_saving"],
+                    "bill_reduction_pct": sv["bill_reduction_pct"],
                 })
-                total_savings_electricity += annual_elec_saving
-                total_subsidy += subsidy["total"]
+                total_savings_electricity += sv["annual_saving"]
+                total_subsidy += sv["total_subsidy"]
+                total_net_cost += sv["net_cost"]
+                total_gross_cost += sv["gross_cost"]
+                total_lifetime += sv["lifetime_saving"]
 
             # ── Store everything in session_state ──
             st.session_state["results"] = {
@@ -830,6 +866,9 @@ if image is not None and mask is not None:
                 "total_annual": aggregate["total_annual_kwh"],
                 "total_savings_electricity": round(total_savings_electricity, 2),
                 "total_subsidy": round(total_subsidy),
+                "total_net_cost": round(total_net_cost),
+                "total_gross_cost": round(total_gross_cost),
+                "total_lifetime_saving": round(total_lifetime),
                 "per_building_savings": per_building_savings,
                 "tariff": tariff,
                 "tariff_unit": tariff_unit,
@@ -961,9 +1000,16 @@ if "results" in st.session_state:
     tariff_unit = R["tariff_unit"]
     tariff_val = R["tariff"]
 
+    # Average per-resident values
     avg_savings = total_savings / num_roofs if num_roofs else 0
-    if avg_savings >= 1_000_000:
-        avg_sav_str = f"{avg_savings / 1_000_000:,.2f}M"
+    avg_net_cost = R["total_net_cost"] / num_roofs if num_roofs else 0
+    avg_payback = avg_net_cost / avg_savings if avg_savings > 0 else 0
+    per_bldg = R["per_building_savings"]
+    avg_bill_reduction = sum(b["bill_reduction_pct"] for b in per_bldg) / len(per_bldg) if per_bldg else 0
+    avg_lifetime = R["total_lifetime_saving"] / num_roofs if num_roofs else 0
+
+    if avg_savings >= 1_00_000:
+        avg_sav_str = f"{avg_savings / 1_00_000:,.2f}L"
     elif avg_savings >= 1_000:
         avg_sav_str = f"{avg_savings / 1_000:,.1f}K"
     else:
@@ -982,19 +1028,20 @@ if "results" in st.session_state:
         <div class="annual-right">
             <div class="icon-circle">💰</div>
             <div>
-                <div class="banner-label">Money Saved per annum by each resident</div>
+                <div class="banner-label">Avg. Money Saved per annum per resident</div>
                 <div class="banner-value">₹{avg_sav_str}</div>
-                <div class="banner-sub">Avg. per building @ ₹{tariff_val}/kWh · {num_roofs} buildings total</div>
+                <div class="banner-sub">Payback: ~{avg_payback:.1f} yrs · Bill reduction: ~{avg_bill_reduction:.0f}% · {num_roofs} buildings</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-
     # ── KEY INSIGHTS ──
     avg_kw = total_kw / num_roofs if num_roofs else 0
     avg_monthly = total_monthly / num_roofs if num_roofs else 0
+    avg_gross = R["total_gross_cost"] / num_roofs if num_roofs else 0
+    avg_sub = total_sub / num_roofs if num_roofs else 0
 
     st.markdown(f"""
     <div style="font-size:1.05rem;font-weight:700;color:#0F172A;margin-bottom:10px;">Key Insights</div>
@@ -1008,6 +1055,16 @@ if "results" in st.session_state:
             <div class="insight-icon icon-blue">⚡</div>
             <div class="insight-title">Average System Size</div>
             <div class="insight-text">Typical rooftop could fit a {avg_kw:,.1f} kW system, generating ~{avg_monthly:,.0f} kWh monthly.</div>
+        </div>
+        <div class="insight-card">
+            <div class="insight-icon icon-amber">💰</div>
+            <div class="insight-title">Investment &amp; Payback</div>
+            <div class="insight-text">Avg. cost ₹{avg_gross:,.0f} → ₹{avg_net_cost:,.0f} after subsidy (₹{avg_sub:,.0f}). Payback in ~{avg_payback:.1f} years.</div>
+        </div>
+        <div class="insight-card">
+            <div class="insight-icon icon-green">🌿</div>
+            <div class="insight-title">25-Year Lifetime Savings</div>
+            <div class="insight-text">Each household saves avg. ₹{avg_lifetime:,.0f} over system lifetime (25 yrs), with ~{avg_bill_reduction:.0f}% bill reduction.</div>
         </div>
         <div class="insight-card">
             <div class="insight-icon icon-amber">⚠️</div>
