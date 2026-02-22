@@ -68,7 +68,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Custom CSS — Modern card-based UI
+# Custom CSS
 # ---------------------------------------------------------------------------
 
 st.markdown("""
@@ -85,6 +85,32 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
 
 /* Hide default Streamlit chrome */
 #MainMenu, footer, .stDeployButton { display: none !important; }
+
+/* ── FIX: Sidebar toggle button visibility ───────── */
+button[data-testid="stSidebarCollapseButton"],
+button[data-testid="collapsedControl"],
+[data-testid="collapsedControl"] > button,
+section[data-testid="stSidebar"] button[kind="header"] {
+    background: #1E293B !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+/* Also style the > arrow icon for the collapsed sidebar button */
+[data-testid="collapsedControl"] {
+    color: #1E293B !important;
+}
+[data-testid="collapsedControl"] svg {
+    fill: #1E293B !important;
+    stroke: #1E293B !important;
+}
+/* Make sure the sidebar collapse button area itself is visible */
+button[data-testid="baseButton-header"] {
+    background: #334155 !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+}
 
 /* ── Top navbar ──────────────────────────────────── */
 .top-nav {
@@ -114,14 +140,13 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     padding: 8px 16px; border-radius: 8px; border: 1px solid #E2E8F0;
     background: #fff; color: #334155; font-size: 0.82rem; font-weight: 500;
     cursor: pointer; display: flex; align-items: center; gap: 6px;
-    text-decoration: none;
 }
 .btn-primary-custom {
     padding: 8px 20px; border-radius: 8px; border: none;
     background: linear-gradient(135deg, #2563EB, #1D4ED8);
     color: #fff; font-size: 0.82rem; font-weight: 600;
     cursor: pointer; display: flex; align-items: center; gap: 6px;
-    text-decoration: none; box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
 }
 
 /* ── Tab bar ─────────────────────────────────────── */
@@ -140,7 +165,7 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     background: #2563EB; color: #fff; box-shadow: 0 2px 6px rgba(37,99,235,0.25);
 }
 
-/* ── Buildings badge (hover reveals image) ───────── */
+/* ── Buildings badge (hover reveals overlay) ─────── */
 .buildings-badge-wrapper {
     position: relative; display: inline-block;
 }
@@ -148,8 +173,7 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     padding: 8px 18px; border-radius: 10px; border: 1px solid #E2E8F0;
     background: #fff; color: #334155; font-size: 0.82rem; font-weight: 600;
     display: flex; align-items: center; gap: 8px; cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    transition: all 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: all 0.2s;
 }
 .buildings-badge:hover {
     border-color: #2563EB; box-shadow: 0 2px 12px rgba(37,99,235,0.15);
@@ -161,7 +185,7 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     display: none; position: absolute; top: 110%; right: 0; z-index: 1000;
     background: #fff; border-radius: 16px; padding: 8px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.18); border: 1px solid #E2E8F0;
-    min-width: 380px;
+    min-width: 420px;
 }
 .hover-overlay img {
     border-radius: 12px; width: 100%; height: auto;
@@ -170,7 +194,7 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     display: block;
 }
 
-/* ── Image gallery ───────────────────────────────── */
+/* ── Image gallery — BIGGER images ───────────────── */
 .img-gallery {
     display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
     margin-bottom: 1.5rem;
@@ -181,13 +205,22 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     background: #111827;
 }
 .img-card img {
-    width: 100%; height: 260px; object-fit: cover; display: block;
+    width: 100%; height: auto;
+    display: block;
 }
 .img-card .img-label {
     position: absolute; bottom: 12px; left: 12px;
     background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
     color: #fff; padding: 6px 14px; border-radius: 8px;
     font-size: 0.75rem; font-weight: 500;
+}
+
+/* ── Warning banner (visible on light bg) ────────── */
+.warning-banner {
+    background: #FEF3C7; border: 1px solid #F59E0B;
+    border-radius: 10px; padding: 10px 16px;
+    font-size: 0.8rem; color: #92400E; font-weight: 500;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
 }
 
 /* ── Metric cards ────────────────────────────────── */
@@ -200,9 +233,7 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     border: 1px solid #E2E8F0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     transition: box-shadow 0.2s;
 }
-.metric-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-}
+.metric-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .metric-card .icon-box {
     width: 38px; height: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
@@ -222,29 +253,36 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     font-size: 0.68rem; color: #94A3B8; margin-top: 2px;
 }
 
-/* ── Annual banner ───────────────────────────────── */
-.annual-banner {
-    background: linear-gradient(135deg, #2563EB 0%, #1E40AF 60%, #1E3A8A 100%);
-    border-radius: 18px; padding: 28px 32px;
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 1.5rem; color: #fff;
+/* ── Annual banner (split: blue + green) ─────────── */
+.annual-split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    border-radius: 18px; overflow: hidden;
+    margin-bottom: 1.5rem;
     box-shadow: 0 4px 20px rgba(37,99,235,0.3);
 }
-.annual-banner .left-side {
+.annual-left {
+    background: linear-gradient(135deg, #2563EB 0%, #1E40AF 60%, #1E3A8A 100%);
+    padding: 28px 32px; color: #fff;
     display: flex; align-items: center; gap: 18px;
 }
-.annual-banner .icon-circle {
+.annual-right {
+    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+    padding: 28px 32px; color: #fff;
+    display: flex; align-items: center; gap: 18px;
+}
+.annual-left .icon-circle, .annual-right .icon-circle {
     width: 52px; height: 52px; border-radius: 50%;
-    background: rgba(255,255,255,0.15); display: flex;
+    background: rgba(255,255,255,0.18); display: flex;
     align-items: center; justify-content: center; font-size: 24px;
+    flex-shrink: 0;
 }
-.annual-banner .banner-label {
-    font-size: 0.82rem; color: rgba(255,255,255,0.8); font-weight: 400;
+.annual-left .banner-label, .annual-right .banner-label {
+    font-size: 0.82rem; color: rgba(255,255,255,0.85); font-weight: 400;
 }
-.annual-banner .banner-value {
+.annual-left .banner-value, .annual-right .banner-value {
     font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em;
 }
-.annual-banner .banner-sub {
+.annual-left .banner-sub, .annual-right .banner-sub {
     font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 2px;
 }
 
@@ -283,7 +321,7 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     font-size: 14px;
 }
 
-/* ── Info row (key-value pairs) ──────────────────── */
+/* ── Info grid ───────────────────────────────────── */
 .info-grid {
     display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
     background: #fff; border-radius: 14px; padding: 20px;
@@ -295,9 +333,6 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
 }
 .info-item .info-value {
     font-size: 0.92rem; color: #0F172A; font-weight: 600;
-}
-.info-item .info-sub {
-    font-size: 0.75rem; color: #64748B; margin-top: 2px;
 }
 
 /* ── Confidence grid ─────────────────────────────── */
@@ -314,7 +349,7 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
     font-size: 1.35rem; color: #0F172A; font-weight: 700;
 }
 
-/* ── Market intelligence 3-col grid ──────────────── */
+/* ── Market grid ─────────────────────────────────── */
 .market-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
     margin-bottom: 0.5rem;
@@ -329,18 +364,6 @@ header[data-testid="stHeader"] { background: #fff !important; border-bottom: 1px
 }
 .market-card .mk-value {
     font-size: 1.4rem; color: #0F172A; font-weight: 700;
-}
-
-/* ── Download buttons ────────────────────────────── */
-.dl-grid {
-    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
-}
-
-/* ── Programme badge ─────────────────────────────── */
-.programme-badge {
-    display: inline-block; padding: 4px 12px; border-radius: 6px;
-    background: #EFF6FF; color: #2563EB; font-size: 0.75rem;
-    font-weight: 600; margin-top: 8px;
 }
 
 /* ── Confidence notes ────────────────────────────── */
@@ -371,11 +394,11 @@ div.stTabs [data-baseweb="tab-list"] { display: none; }
 
 
 # ---------------------------------------------------------------------------
-# Helper: numpy image → base64 data URI for embedding in HTML
+# Helpers
 # ---------------------------------------------------------------------------
 
 def _img_to_base64(image_array: np.ndarray) -> str:
-    """Convert (C,H,W) or (H,W,3) uint8 image to base64 PNG data URI."""
+    """Convert (C,H,W) or (H,W,3) uint8 image to base64 PNG."""
     from PIL import Image
     rgb = prepare_display_rgb(image_array)
     pil = Image.fromarray(rgb)
@@ -385,8 +408,23 @@ def _img_to_base64(image_array: np.ndarray) -> str:
     return base64.b64encode(buf.read()).decode()
 
 
+def _mask_to_base64(mask: np.ndarray) -> str:
+    """Convert (H,W) binary mask to a colored base64 PNG."""
+    from PIL import Image
+    # Create a colored mask: buildings = bright cyan, background = dark
+    h, w = mask.shape
+    rgb = np.zeros((h, w, 3), dtype=np.uint8)
+    rgb[mask > 0] = [0, 200, 255]   # cyan for buildings
+    rgb[mask == 0] = [15, 23, 42]   # dark blue-grey background
+    pil = Image.fromarray(rgb)
+    buf = io.BytesIO()
+    pil.save(buf, format="PNG")
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
+
+
 def _fig_to_base64(fig) -> str:
-    """Convert matplotlib figure to base64 PNG data URI."""
+    """Convert matplotlib figure to base64 PNG."""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=120, bbox_inches="tight", facecolor="#111827")
     plt.close(fig)
@@ -395,7 +433,7 @@ def _fig_to_base64(fig) -> str:
 
 
 def _format_smart(value: float, unit: str) -> tuple:
-    """Auto-scale values for display (kW→MW, kWh→GWh etc)."""
+    """Auto-scale values for display."""
     if unit == "kW" and value >= 1000:
         return f"{value / 1000:,.1f}", "MW"
     if unit == "kWh" and value >= 1_000_000:
@@ -428,7 +466,7 @@ market_records = _load_market()
 
 
 # ---------------------------------------------------------------------------
-# Sidebar — configuration (collapsed by default)
+# Sidebar
 # ---------------------------------------------------------------------------
 
 st.sidebar.header("⚙️ Settings")
@@ -439,7 +477,6 @@ data_mode = st.sidebar.radio(
     help="Synthetic mode generates fake buildings for a zero-data demo.",
 )
 
-# --- Location selector ---
 st.sidebar.subheader("📍 Location")
 location_names = sorted(set(
     list(baselines.keys()) + list(policy_records.keys()) + list(market_records.keys())
@@ -448,19 +485,15 @@ display_names = []
 for k in location_names:
     rec = baselines.get(k) or policy_records.get(k) or market_records.get(k)
     display_names.append(rec.location_name if rec else k.title())
-
 if not display_names:
     display_names = ["Default"]
 
 selected_location_display = st.sidebar.selectbox(
     "City / Region", display_names, index=0,
-    help="Select a location for yield baselines and policy context.",
 )
 selected_location_key = selected_location_display.lower()
-
 use_baseline = st.sidebar.checkbox("Use location yield baseline", value=True)
 
-# --- Solar assumptions ---
 st.sidebar.subheader("Solar Assumptions")
 usability = st.sidebar.slider("Roof usability factor", 0.3, 0.9, 0.65)
 panel_density = st.sidebar.slider("Panel power density (kW/m²)", 0.10, 0.25, 0.18)
@@ -501,7 +534,7 @@ if data_mode == "Synthetic demo":
     image, mask, transform, crs = generate_synthetic_tile(
         num_buildings=n_buildings, seed=int(seed)
     )
-    warnings_list.append("⚠️ Using synthetic data — no real CRS. Area estimates are pixel-based.")
+    warnings_list.append("Using synthetic data — no real CRS. Area estimates are pixel-based.")
 else:
     st.sidebar.subheader("Data Paths")
     data_dir = Path("data/raw")
@@ -521,8 +554,6 @@ else:
                     mask, _, _ = load_or_create_mask(selected, mask_path)
                 elif label_path.exists():
                     mask, _, _ = load_or_create_mask(selected, label_path)
-                else:
-                    st.warning(f"No mask/label found for {selected.name}.")
         else:
             st.info("No .tif files found in `data/raw/images/`.")
     else:
@@ -559,7 +590,7 @@ st.markdown("""
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PIPELINE — runs automatically when data is available
+# PIPELINE — store results in session_state so downloads don't reset
 # ═══════════════════════════════════════════════════════════════════════════
 
 if image is not None and mask is not None:
@@ -569,7 +600,7 @@ if image is not None and mask is not None:
         use_pixel_coords = (crs is None)
         crs_units = check_crs_units(crs)
         if crs is None:
-            warnings_list.append("⚠️ No CRS — all coordinates are in pixel space.")
+            warnings_list.append("No CRS detected — all coordinates are in pixel space.")
 
         with st.spinner("Analyzing rooftops..."):
             polygons = mask_to_polygons(
@@ -581,7 +612,6 @@ if image is not None and mask is not None:
         if not polygons:
             st.error("No polygons found! Check mask threshold or min_area filter.")
         else:
-            # Compute effective transform
             if use_pixel_coords or transform is None:
                 effective_transform = from_bounds(
                     0, 0, mask.shape[1], mask.shape[0],
@@ -616,378 +646,27 @@ if image is not None and mask is not None:
                 has_crs=(crs is not None),
             )
 
-            # Generate visualization images
             with st.spinner("Rendering..."):
                 # Overlay figure
                 fig_overlay, ax_overlay = plt.subplots(1, 1, figsize=(8, 8))
                 overlay_polygons(
                     image, polygons, ax=ax_overlay,
-                    transform=effective_transform,
-                    title="",
+                    transform=effective_transform, title="",
                 )
                 overlay_b64 = _fig_to_base64(fig_overlay)
 
-                # Side-by-side
-                fig_sbs = side_by_side(
-                    image, mask, polygons,
-                    transform=effective_transform,
-                )
-                sbs_b64 = _fig_to_base64(fig_sbs)
-
-                # Raw image
+                # Raw image + mask as base64
                 raw_b64 = _img_to_base64(image)
+                mask_b64 = _mask_to_base64(mask)
 
-            # ── Extract values ──
-            num_roofs = aggregate["num_roofs"]
-            sfx = aggregate.get("label_suffix", "")
-            total_area = aggregate["total_roof_area"]
-            area_unit = aggregate["total_roof_area_unit"]
-            total_kw = aggregate["total_system_kw"]
-            total_monthly = aggregate["total_monthly_kwh"]
-            total_annual = aggregate["total_annual_kwh"]
+                # Side-by-side for export
+                fig_sbs = side_by_side(image, mask, polygons, transform=effective_transform)
+                sbs_buf = io.BytesIO()
+                fig_sbs.savefig(sbs_buf, format="png", dpi=150, bbox_inches="tight")
+                plt.close(fig_sbs)
+                sbs_buf.seek(0)
 
-            cap_val, cap_unit = _format_smart(total_kw, "kW")
-            month_val, month_unit = _format_smart(total_monthly, "kWh")
-            annual_val, annual_unit = _format_smart(total_annual, "kWh")
-
-            # Warnings
-            if warnings_list:
-                for w_msg in warnings_list:
-                    st.warning(w_msg)
-
-            # ════════════════════════════════════════════════════════
-            # TAB BAR + BUILDINGS BADGE
-            # ════════════════════════════════════════════════════════
-
-            st.markdown(f"""
-            <div class="tab-bar">
-                <div class="tab-pills">
-                    <div class="tab-pill">Satellite</div>
-                    <div class="tab-pill">Building Detection</div>
-                    <div class="tab-pill active">Solar Analysis</div>
-                </div>
-                <div class="buildings-badge-wrapper">
-                    <div class="buildings-badge">
-                        <span class="dot"></span>
-                        🏢 {num_roofs} Buildings Detected
-                    </div>
-                    <div class="hover-overlay">
-                        <img src="data:image/png;base64,{overlay_b64}" alt="Roof Polygon Overlay"/>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # ════════════════════════════════════════════════════════
-            # IMAGE GALLERY — 2 panels
-            # ════════════════════════════════════════════════════════
-
-            st.markdown(f"""
-            <div class="img-gallery">
-                <div class="img-card">
-                    <img src="data:image/png;base64,{overlay_b64}" alt="Solar Estimate"/>
-                    <div class="img-label">☀️ Solar Estimate Summary</div>
-                </div>
-                <div class="img-card">
-                    <img src="data:image/png;base64,{raw_b64}" alt="Satellite"/>
-                    <div class="img-label">🛰️ Intensity / Solar Deployment</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # ════════════════════════════════════════════════════════
-            # 4 METRIC CARDS
-            # ════════════════════════════════════════════════════════
-
-            st.markdown(f"""
-            <div class="metric-grid">
-                <div class="metric-card">
-                    <div class="icon-box icon-blue">🏢</div>
-                    <div class="value">{num_roofs}</div>
-                    <div class="label">Total Rooftops</div>
-                    <div class="sublabel">buildings detected</div>
-                </div>
-                <div class="metric-card">
-                    <div class="icon-box icon-indigo">📐</div>
-                    <div class="value">{total_area:,.0f}</div>
-                    <div class="label">Roof Area</div>
-                    <div class="sublabel">{area_unit} analyzed</div>
-                </div>
-                <div class="metric-card">
-                    <div class="icon-box icon-amber">⚡</div>
-                    <div class="value">{cap_val} {cap_unit}</div>
-                    <div class="label">System Capacity</div>
-                    <div class="sublabel">total potential</div>
-                </div>
-                <div class="metric-card">
-                    <div class="icon-box icon-green">📊</div>
-                    <div class="value">{month_val} {month_unit}</div>
-                    <div class="label">Monthly Output</div>
-                    <div class="sublabel">estimated generation</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # ════════════════════════════════════════════════════════
-            # ANNUAL BANNER
-            # ════════════════════════════════════════════════════════
-
-            baseline_note = ""
-            if active_baseline:
-                baseline_note = f"Based on {active_baseline.location_name} yield data ({active_baseline.source_name})"
-            else:
-                baseline_note = "Potential yearly solar energy output"
-
-            st.markdown(f"""
-            <div class="annual-banner">
-                <div class="left-side">
-                    <div class="icon-circle">⚡</div>
-                    <div>
-                        <div class="banner-label">Estimated Annual Generation</div>
-                        <div class="banner-value">{annual_val} {annual_unit}</div>
-                        <div class="banner-sub">{baseline_note}</div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # ════════════════════════════════════════════════════════
-            # KEY INSIGHTS — 3 cards
-            # ════════════════════════════════════════════════════════
-
-            avg_kw = total_kw / num_roofs if num_roofs else 0
-            avg_kw_str = f"{avg_kw:,.1f}"
-            avg_monthly = total_monthly / num_roofs if num_roofs else 0
-            avg_monthly_str = f"{avg_monthly:,.0f}"
-
-            st.markdown("""<div style="font-size:1.05rem;font-weight:700;color:#0F172A;margin-bottom:10px;">Key Insights</div>""",
-                        unsafe_allow_html=True)
-
-            st.markdown(f"""
-            <div class="insight-grid">
-                <div class="insight-card">
-                    <div class="insight-icon icon-green">🟢</div>
-                    <div class="insight-title">High Potential Area</div>
-                    <div class="insight-text">
-                        This area shows strong solar potential with
-                        {num_roofs} suitable rooftops identified.
-                    </div>
-                </div>
-                <div class="insight-card">
-                    <div class="insight-icon icon-blue">⚡</div>
-                    <div class="insight-title">Average System Size</div>
-                    <div class="insight-text">
-                        Typical rooftop could fit a {avg_kw_str} kW
-                        system, generating ~{avg_monthly_str} kWh
-                        monthly.
-                    </div>
-                </div>
-                <div class="insight-card">
-                    <div class="insight-icon icon-amber">⚠️</div>
-                    <div class="insight-title">Site Survey Required</div>
-                    <div class="insight-text">
-                        Professional assessment needed for
-                        roof condition, shading, and structural
-                        capacity.
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # ════════════════════════════════════════════════════════
-            # POLICY & INCENTIVES
-            # ════════════════════════════════════════════════════════
-
-            st.markdown("""
-            <div class="section-header">
-                <div class="sh-icon">📋</div>
-                Policy & Incentives
-            </div>
-            """, unsafe_allow_html=True)
-
-            policy_rec = policy_records.get(selected_location_key) if load_policy_overlays else None
-            if policy_rec:
-                tariff_str = ""
-                if policy_rec.example_tariff_residential_per_kwh is not None:
-                    tariff_str = f"{policy_rec.example_tariff_residential_per_kwh} {policy_rec.example_tariff_unit}/kWh"
-
-                subsidy_str = "✅ Yes" if policy_rec.subsidy_available else "❌ No"
-
-                st.markdown(f"""
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Compensation</div>
-                        <div class="info-value">{policy_rec.compensation_regime}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Example Tariff</div>
-                        <div class="info-value">{tariff_str}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Subsidy</div>
-                        <div class="info-value">{subsidy_str}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Source</div>
-                        <div class="info-value">{policy_rec.policy_source} ({policy_rec.policy_date})</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                if policy_rec.subsidy_notes:
-                    st.markdown(f"""<div style="font-size:0.82rem;color:#475569;margin:-0.5rem 0 0.5rem 0;padding:0 4px;">{policy_rec.subsidy_notes}</div>""", unsafe_allow_html=True)
-                if policy_rec.notes:
-                    st.markdown(f"""<div style="font-size:0.78rem;color:#64748B;margin-bottom:0.5rem;padding:0 4px;">{policy_rec.notes}</div>""", unsafe_allow_html=True)
-                if policy_rec.program_eligibility_tag if hasattr(policy_rec, 'program_eligibility_tag') else None:
-                    st.markdown(f"""<div class="programme-badge">{policy_rec.program_eligibility_tag}</div>""", unsafe_allow_html=True)
-            else:
-                st.caption("No policy data loaded for this location.")
-
-            # ════════════════════════════════════════════════════════
-            # MARKET INTELLIGENCE
-            # ════════════════════════════════════════════════════════
-
-            st.markdown("""
-            <div class="section-header">
-                <div class="sh-icon">📊</div>
-                Market Intelligence
-            </div>
-            """, unsafe_allow_html=True)
-
-            market_rec = market_records.get(selected_location_key) if load_policy_overlays else None
-            if market_rec:
-                ad_score = f"{market_rec.adoption_density_score:.0%}" if market_rec.adoption_density_score is not None else "N/A"
-                am_score = f"{market_rec.adoption_momentum_score:.0%}" if market_rec.adoption_momentum_score is not None else "N/A"
-                pv_dens = f"{market_rec.installed_pv_density_per_km2:.1f} kW/km²" if market_rec.installed_pv_density_per_km2 is not None else "N/A"
-
-                st.markdown(f"""
-                <div class="market-grid">
-                    <div class="market-card">
-                        <div class="mk-label">Adoption Density</div>
-                        <div class="mk-value">{ad_score}</div>
-                    </div>
-                    <div class="market-card">
-                        <div class="mk-label">Market Maturity</div>
-                        <div class="mk-value">{market_rec.market_maturity_segment}</div>
-                    </div>
-                    <div class="market-card">
-                        <div class="mk-label">PV Density</div>
-                        <div class="mk-value">{pv_dens}</div>
-                    </div>
-                </div>
-                <div class="market-grid" style="margin-top: -6px;">
-                    <div class="market-card">
-                        <div class="mk-label">Adoption Momentum</div>
-                        <div class="mk-value">{am_score}</div>
-                    </div>
-                    <div class="market-card">
-                        <div class="mk-label">Customer Mix</div>
-                        <div class="mk-value">{market_rec.customer_mix_proxy}</div>
-                    </div>
-                    <div class="market-card" style="display:flex;flex-direction:column;justify-content:center;">
-                        <div class="mk-label">Programme</div>
-                        <div class="mk-value" style="font-size:0.9rem;">{market_rec.program_eligibility_tag or 'N/A'}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                if market_rec.notes:
-                    st.markdown(f"""<div style="font-size:0.78rem;color:#64748B;margin-top:4px;">{market_rec.notes}</div>""", unsafe_allow_html=True)
-            else:
-                st.warning("No market intelligence layer loaded for this tile/city.")
-
-            # ════════════════════════════════════════════════════════
-            # DATA CONFIDENCE / QUALITY
-            # ════════════════════════════════════════════════════════
-
-            st.markdown("""
-            <div class="section-header">
-                <div class="sh-icon">🛡️</div>
-                Data Confidence / Quality
-            </div>
-            """, unsafe_allow_html=True)
-
-            seg_label = f"{tile_conf.segmentation_confidence:.1%}" if tile_conf.segmentation_confidence else "N/A"
-            vec_label = f"{tile_conf.vectorization_confidence:.1%}"
-
-            st.markdown(f"""
-            <div class="conf-grid">
-                <div class="conf-item">
-                    <div class="conf-label">Overall Confidence</div>
-                    <div class="conf-value">{tile_conf.overall_confidence_score:.0f}/100</div>
-                </div>
-                <div class="conf-item">
-                    <div class="conf-label">Segmentation Confidence</div>
-                    <div class="conf-value">{seg_label}</div>
-                </div>
-                <div class="conf-item">
-                    <div class="conf-label">Data Recency</div>
-                    <div class="conf-value">{tile_conf.data_recency_label}</div>
-                </div>
-                <div class="conf-item">
-                    <div class="conf-label">Vectorization Confidence</div>
-                    <div class="conf-value">{vec_label}</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            if tile_conf.uncertainty_notes:
-                notes_html = "".join(f"<li>{n}</li>" for n in tile_conf.uncertainty_notes)
-                st.markdown(f"""
-                <div class="conf-notes">
-                    <ul style="margin:0;padding-left:18px;">{notes_html}</ul>
-                </div>
-                """, unsafe_allow_html=True)
-
-            # ════════════════════════════════════════════════════════
-            # ALIGNMENT DEBUG (if enabled)
-            # ════════════════════════════════════════════════════════
-
-            if show_alignment_debug and align_debug:
-                with st.expander("🔍 Alignment Debug View", expanded=True):
-                    col_dbg1, col_dbg2 = st.columns(2)
-                    with col_dbg1:
-                        st.markdown("**Raster bounds:** `{}`".format(
-                            tuple(round(v, 4) for v in align_debug["raster_bounds"])
-                        ))
-                        st.markdown("**Polygon bounds:** `{}`".format(
-                            tuple(round(v, 4) for v in align_debug["polygon_bounds"])
-                            if align_debug["polygon_bounds"] else "N/A"
-                        ))
-                        st.markdown(f"**Overlap ratio:** {align_debug['overlap_ratio']:.2%}")
-                        st.markdown(f"**Coord space:** {align_debug['coordinate_space']}")
-                    with col_dbg2:
-                        for note in align_debug.get("notes", []):
-                            st.info(note)
-
-                    dbg_fig = alignment_debug_figure(
-                        image, polygons, transform=effective_transform
-                    )
-                    st.pyplot(dbg_fig)
-                    plt.close(dbg_fig)
-
-            # ════════════════════════════════════════════════════════
-            # DOWNLOADS
-            # ════════════════════════════════════════════════════════
-
-            st.markdown("""
-            <div class="section-header">
-                <div class="sh-icon">📥</div>
-                Downloads
-            </div>
-            """, unsafe_allow_html=True)
-
-            col_dl1, col_dl2, col_dl3, col_dl4 = st.columns(4)
-
-            with col_dl1:
-                buf = io.BytesIO()
-                fig2 = side_by_side(image, mask, polygons, transform=effective_transform)
-                fig2.savefig(buf, format="png", dpi=150, bbox_inches="tight")
-                plt.close(fig2)
-                buf.seek(0)
-                st.download_button("📸 Overlay PNG", data=buf, file_name="solar_overlay.png", mime="image/png")
-
-            with col_dl2:
+                # GeoJSON
                 from shapely.geometry import mapping
                 features = []
                 for i, poly in enumerate(polygons):
@@ -997,25 +676,18 @@ if image is not None and mask is not None:
                         "geometry": mapping(poly["geometry"]),
                     })
                 geojson_str = json.dumps({"type": "FeatureCollection", "features": features}, indent=2)
-                st.download_button("📍 GeoJSON", data=geojson_str, file_name="roof_polygons.geojson", mime="application/json")
 
-            with col_dl3:
+                # Report
+                report = format_report(per_roof, aggregate, config)
+
+                # Meta
                 meta_sidecar = json.dumps({
                     "source_raster": None, "crs_epsg": crs.to_epsg() if crs else None,
                     "coordinates": "georeferenced" if crs else "pixel",
                     "num_polygons": len(polygons),
                 }, indent=2)
-                st.download_button("📄 Meta JSON", data=meta_sidecar, file_name="footprints.meta.json", mime="application/json")
 
-            with col_dl4:
-                report = format_report(per_roof, aggregate, config)
-                st.download_button("📝 Report (TXT)", data=report, file_name="solar_report.txt", mime="text/plain")
-
-            # Enriched exports row
-            st.caption("**Enriched exports:**")
-            col_e1, col_e2, col_e3, col_e4 = st.columns(4)
-
-            with col_e1:
+                # Enriched CSV
                 csv_buf = io.StringIO()
                 fieldnames = [
                     "polygon_id", "roof_area", "roof_area_unit",
@@ -1037,10 +709,10 @@ if image is not None and mask is not None:
                     row["roof_plane_tilt"] = poly.get("roof_plane_tilt", "")
                     row["heritage_flag"] = poly.get("heritage_or_restricted_zone_flag", "")
                     writer.writerow(row)
-                st.download_button("📊 Enriched CSV", data=csv_buf.getvalue(), file_name="roofs_enriched.csv", mime="text/csv")
+                csv_str = csv_buf.getvalue()
 
-            with col_e2:
-                tile_summary = {
+                # Tile summary
+                tile_summary = json.dumps({
                     "export_timestamp": datetime.now(timezone.utc).isoformat(),
                     "total_roofs": aggregate["num_roofs"],
                     "total_roof_area": aggregate["total_roof_area"],
@@ -1054,18 +726,17 @@ if image is not None and mask is not None:
                         "annual_kwh_per_kw": active_baseline.annual_yield_kwh_per_kw if active_baseline else 1320,
                         "confidence": active_baseline.confidence if active_baseline else "Low",
                     },
-                    "policy_summary": policy_to_dict(policy_rec) if policy_rec else None,
-                    "market_summary": market_to_dict(market_rec) if market_rec else None,
+                    "policy_summary": policy_to_dict(policy_records.get(selected_location_key)) if policy_records.get(selected_location_key) else None,
+                    "market_summary": market_to_dict(market_records.get(selected_location_key)) if market_records.get(selected_location_key) else None,
                     "confidence": confidence_to_dict(tile_conf),
                     "disclaimers": [config.pre_assessment_disclaimer] + config.limitations,
-                }
-                st.download_button("📋 Tile Summary JSON", data=json.dumps(tile_summary, indent=2), file_name="tile_summary.json", mime="application/json")
+                }, indent=2)
 
-            with col_e3:
-                snapshot = {
+                # Snapshot
+                snapshot = json.dumps({
                     "selected_location": selected_location_display,
-                    "policy": policy_to_dict(policy_rec) if policy_rec else None,
-                    "market": market_to_dict(market_rec) if market_rec else None,
+                    "policy": policy_to_dict(policy_records.get(selected_location_key)) if policy_records.get(selected_location_key) else None,
+                    "market": market_to_dict(market_records.get(selected_location_key)) if market_records.get(selected_location_key) else None,
                     "yield_baseline": {
                         "location": active_baseline.location_name,
                         "annual_kwh_per_kw": active_baseline.annual_yield_kwh_per_kw,
@@ -1073,33 +744,329 @@ if image is not None and mask is not None:
                         "source": active_baseline.source_name,
                         "confidence": active_baseline.confidence,
                     } if active_baseline else None,
-                }
-                st.download_button("📸 Policy/Market Snapshot", data=json.dumps(snapshot, indent=2), file_name="policy_market_snapshot.json", mime="application/json")
+                }, indent=2)
 
-            with col_e4:
-                if show_alignment_debug and align_debug:
-                    debug_log = json.dumps({
-                        "alignment_debug": {k: (list(v) if isinstance(v, tuple) else v) for k, v in align_debug.items()},
-                        "confidence": confidence_to_dict(tile_conf),
-                        "warnings": warnings_list,
-                    }, indent=2)
-                    st.download_button("🔍 Debug Log", data=debug_log, file_name="alignment_debug_log.json", mime="application/json")
-                else:
-                    st.caption("Enable debug view for debug log export.")
+            # ── Compute annual savings ──
+            _pol = policy_records.get(selected_location_key)
+            tariff = _pol.example_tariff_residential_per_kwh if (_pol and _pol.example_tariff_residential_per_kwh) else 0.10
+            tariff_unit = _pol.example_tariff_unit if _pol else "USD"
+            annual_savings = aggregate["total_annual_kwh"] * tariff
 
-            # Disclaimer
-            st.markdown(f"""<div style="margin-top:1rem;padding:14px 18px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;font-size:0.78rem;color:#92400E;">{config.pre_assessment_disclaimer}</div>""", unsafe_allow_html=True)
+            # ── Store everything in session_state ──
+            st.session_state["results"] = {
+                "overlay_b64": overlay_b64,
+                "raw_b64": raw_b64,
+                "mask_b64": mask_b64,
+                "num_roofs": aggregate["num_roofs"],
+                "total_area": aggregate["total_roof_area"],
+                "area_unit": aggregate["total_roof_area_unit"],
+                "total_kw": aggregate["total_system_kw"],
+                "total_monthly": aggregate["total_monthly_kwh"],
+                "total_annual": aggregate["total_annual_kwh"],
+                "annual_savings": annual_savings,
+                "tariff": tariff,
+                "tariff_unit": tariff_unit,
+                "sfx": aggregate.get("label_suffix", ""),
+                "per_roof": per_roof,
+                "tile_conf": tile_conf,
+                "align_debug": align_debug,
+                "warnings_list": warnings_list,
+                "polygons": polygons,
+                "effective_transform": effective_transform,
+                # Pre-computed export data (bytes/strings)
+                "sbs_png": sbs_buf.getvalue(),
+                "geojson_str": geojson_str,
+                "meta_sidecar": meta_sidecar,
+                "report": report,
+                "csv_str": csv_str,
+                "tile_summary": tile_summary,
+                "snapshot": snapshot,
+            }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DISPLAY — reads from session_state so downloads don't reset
+# ═══════════════════════════════════════════════════════════════════════════
+
+if "results" in st.session_state:
+    R = st.session_state["results"]
+
+    num_roofs = R["num_roofs"]
+    total_area = R["total_area"]
+    area_unit = R["area_unit"]
+    total_kw = R["total_kw"]
+    total_monthly = R["total_monthly"]
+    total_annual = R["total_annual"]
+    overlay_b64 = R["overlay_b64"]
+    raw_b64 = R["raw_b64"]
+    mask_b64 = R["mask_b64"]
+    tile_conf = R["tile_conf"]
+    align_debug = R["align_debug"]
+    warn_list = R["warnings_list"]
+
+    cap_val, cap_unit = _format_smart(total_kw, "kW")
+    month_val, month_unit = _format_smart(total_monthly, "kWh")
+    annual_val, annual_unit = _format_smart(total_annual, "kWh")
+
+    # ── Warnings — styled, right below navbar ──
+    for w_msg in warn_list:
+        st.markdown(f'<div class="warning-banner">⚠️ {w_msg}</div>', unsafe_allow_html=True)
+
+    # ── TAB BAR + BUILDINGS BADGE ──
+    st.markdown(f"""
+    <div class="tab-bar">
+        <div class="tab-pills">
+            <div class="tab-pill">Satellite</div>
+            <div class="tab-pill">Building Detection</div>
+            <div class="tab-pill active">Solar Analysis</div>
+        </div>
+        <div class="buildings-badge-wrapper">
+            <div class="buildings-badge">
+                <span class="dot"></span>
+                🏢 {num_roofs} Buildings Detected
+            </div>
+            <div class="hover-overlay">
+                <img src="data:image/png;base64,{overlay_b64}" alt="Roof Polygon Overlay"/>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── IMAGE GALLERY: Left = Original, Right = Mask ──
+    st.markdown(f"""
+    <div class="img-gallery">
+        <div class="img-card">
+            <img src="data:image/png;base64,{raw_b64}" alt="Satellite Image"/>
+            <div class="img-label">🛰️ Original Satellite Image</div>
+        </div>
+        <div class="img-card">
+            <img src="data:image/png;base64,{mask_b64}" alt="Segmentation Mask"/>
+            <div class="img-label">🎯 Building Segmentation Mask</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── 4 METRIC CARDS ──
+    st.markdown(f"""
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="icon-box icon-blue">🏢</div>
+            <div class="value">{num_roofs}</div>
+            <div class="label">Total Rooftops</div>
+            <div class="sublabel">buildings detected</div>
+        </div>
+        <div class="metric-card">
+            <div class="icon-box icon-indigo">📐</div>
+            <div class="value">{total_area:,.0f}</div>
+            <div class="label">Roof Area</div>
+            <div class="sublabel">{area_unit} analyzed</div>
+        </div>
+        <div class="metric-card">
+            <div class="icon-box icon-amber">⚡</div>
+            <div class="value">{cap_val} {cap_unit}</div>
+            <div class="label">System Capacity</div>
+            <div class="sublabel">total potential</div>
+        </div>
+        <div class="metric-card">
+            <div class="icon-box icon-green">📊</div>
+            <div class="value">{month_val} {month_unit}</div>
+            <div class="label">Monthly Output</div>
+            <div class="sublabel">estimated generation</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── ANNUAL BANNER (blue) + MONEY SAVED (green) ──
+    baseline_note = ""
+    if active_baseline:
+        baseline_note = f"Based on {active_baseline.location_name} yield data ({active_baseline.source_name})"
+    else:
+        baseline_note = "Potential yearly solar energy output"
+
+    annual_savings = R["annual_savings"]
+    tariff_unit = R["tariff_unit"]
+    tariff_val = R["tariff"]
+    if annual_savings >= 1_000_000:
+        savings_str = f"{annual_savings / 1_000_000:,.2f}M"
+    elif annual_savings >= 1_000:
+        savings_str = f"{annual_savings / 1_000:,.1f}K"
+    else:
+        savings_str = f"{annual_savings:,.0f}"
+
+    st.markdown(f"""
+    <div class="annual-split">
+        <div class="annual-left">
+            <div class="icon-circle">⚡</div>
+            <div>
+                <div class="banner-label">Estimated Annual Generation</div>
+                <div class="banner-value">{annual_val} {annual_unit}</div>
+                <div class="banner-sub">{baseline_note}</div>
+            </div>
+        </div>
+        <div class="annual-right">
+            <div class="icon-circle">💰</div>
+            <div>
+                <div class="banner-label">Money Saved per annum by the residents</div>
+                <div class="banner-value">{savings_str} {tariff_unit}</div>
+                <div class="banner-sub">Based on {tariff_val} {tariff_unit}/kWh residential tariff</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── KEY INSIGHTS ──
+    avg_kw = total_kw / num_roofs if num_roofs else 0
+    avg_monthly = total_monthly / num_roofs if num_roofs else 0
+
+    st.markdown(f"""
+    <div style="font-size:1.05rem;font-weight:700;color:#0F172A;margin-bottom:10px;">Key Insights</div>
+    <div class="insight-grid">
+        <div class="insight-card">
+            <div class="insight-icon icon-green">🟢</div>
+            <div class="insight-title">High Potential Area</div>
+            <div class="insight-text">This area shows strong solar potential with {num_roofs} suitable rooftops identified.</div>
+        </div>
+        <div class="insight-card">
+            <div class="insight-icon icon-blue">⚡</div>
+            <div class="insight-title">Average System Size</div>
+            <div class="insight-text">Typical rooftop could fit a {avg_kw:,.1f} kW system, generating ~{avg_monthly:,.0f} kWh monthly.</div>
+        </div>
+        <div class="insight-card">
+            <div class="insight-icon icon-amber">⚠️</div>
+            <div class="insight-title">Site Survey Required</div>
+            <div class="insight-text">Professional assessment needed for roof condition, shading, and structural capacity.</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── POLICY & INCENTIVES ──
+    st.markdown("""<div class="section-header"><div class="sh-icon">📋</div>Policy & Incentives</div>""", unsafe_allow_html=True)
+    policy_rec = policy_records.get(selected_location_key) if load_policy_overlays else None
+    if policy_rec:
+        tariff_str = f"{policy_rec.example_tariff_residential_per_kwh} {policy_rec.example_tariff_unit}/kWh" if policy_rec.example_tariff_residential_per_kwh is not None else "N/A"
+        subsidy_str = "✅ Yes" if policy_rec.subsidy_available else "❌ No"
+        st.markdown(f"""
+        <div class="info-grid">
+            <div class="info-item"><div class="info-label">Compensation</div><div class="info-value">{policy_rec.compensation_regime}</div></div>
+            <div class="info-item"><div class="info-label">Example Tariff</div><div class="info-value">{tariff_str}</div></div>
+            <div class="info-item"><div class="info-label">Subsidy</div><div class="info-value">{subsidy_str}</div></div>
+            <div class="info-item"><div class="info-label">Source</div><div class="info-value">{policy_rec.policy_source} ({policy_rec.policy_date})</div></div>
+        </div>
+        """, unsafe_allow_html=True)
+        if policy_rec.subsidy_notes:
+            st.markdown(f'<div style="font-size:0.82rem;color:#475569;margin:-0.5rem 0 0.5rem 0;">{policy_rec.subsidy_notes}</div>', unsafe_allow_html=True)
+        if policy_rec.notes:
+            st.markdown(f'<div style="font-size:0.78rem;color:#64748B;margin-bottom:0.5rem;">{policy_rec.notes}</div>', unsafe_allow_html=True)
+    else:
+        st.caption("No policy data loaded for this location.")
+
+    # ── MARKET INTELLIGENCE ──
+    st.markdown("""<div class="section-header"><div class="sh-icon">📊</div>Market Intelligence</div>""", unsafe_allow_html=True)
+    market_rec = market_records.get(selected_location_key) if load_policy_overlays else None
+    if market_rec:
+        ad_score = f"{market_rec.adoption_density_score:.0%}" if market_rec.adoption_density_score is not None else "N/A"
+        am_score = f"{market_rec.adoption_momentum_score:.0%}" if market_rec.adoption_momentum_score is not None else "N/A"
+        pv_dens = f"{market_rec.installed_pv_density_per_km2:.1f} kW/km²" if market_rec.installed_pv_density_per_km2 is not None else "N/A"
+        st.markdown(f"""
+        <div class="market-grid">
+            <div class="market-card"><div class="mk-label">Adoption Density</div><div class="mk-value">{ad_score}</div></div>
+            <div class="market-card"><div class="mk-label">Market Maturity</div><div class="mk-value">{market_rec.market_maturity_segment}</div></div>
+            <div class="market-card"><div class="mk-label">PV Density</div><div class="mk-value">{pv_dens}</div></div>
+        </div>
+        <div class="market-grid" style="margin-top:-6px;">
+            <div class="market-card"><div class="mk-label">Adoption Momentum</div><div class="mk-value">{am_score}</div></div>
+            <div class="market-card"><div class="mk-label">Customer Mix</div><div class="mk-value">{market_rec.customer_mix_proxy}</div></div>
+            <div class="market-card"><div class="mk-label">Programme</div><div class="mk-value" style="font-size:0.9rem;">{market_rec.program_eligibility_tag or 'N/A'}</div></div>
+        </div>
+        """, unsafe_allow_html=True)
+        if market_rec.notes:
+            st.markdown(f'<div style="font-size:0.78rem;color:#64748B;margin-top:4px;">{market_rec.notes}</div>', unsafe_allow_html=True)
+    else:
+        st.warning("No market intelligence layer loaded for this tile/city.")
+
+    # ── DATA CONFIDENCE / QUALITY ──
+    st.markdown("""<div class="section-header"><div class="sh-icon">🛡️</div>Data Confidence / Quality</div>""", unsafe_allow_html=True)
+    seg_label = f"{tile_conf.segmentation_confidence:.1%}" if tile_conf.segmentation_confidence else "N/A"
+    vec_label = f"{tile_conf.vectorization_confidence:.1%}"
+    st.markdown(f"""
+    <div class="conf-grid">
+        <div class="conf-item"><div class="conf-label">Overall Confidence</div><div class="conf-value">{tile_conf.overall_confidence_score:.0f}/100</div></div>
+        <div class="conf-item"><div class="conf-label">Segmentation Confidence</div><div class="conf-value">{seg_label}</div></div>
+        <div class="conf-item"><div class="conf-label">Data Recency</div><div class="conf-value">{tile_conf.data_recency_label}</div></div>
+        <div class="conf-item"><div class="conf-label">Vectorization Confidence</div><div class="conf-value">{vec_label}</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+    if tile_conf.uncertainty_notes:
+        notes_html = "".join(f"<li>{n}</li>" for n in tile_conf.uncertainty_notes)
+        st.markdown(f'<div class="conf-notes"><ul style="margin:0;padding-left:18px;">{notes_html}</ul></div>', unsafe_allow_html=True)
+
+    # ── ALIGNMENT DEBUG ──
+    if show_alignment_debug and align_debug:
+        with st.expander("🔍 Alignment Debug View", expanded=True):
+            col_dbg1, col_dbg2 = st.columns(2)
+            with col_dbg1:
+                st.markdown("**Raster bounds:** `{}`".format(
+                    tuple(round(v, 4) for v in align_debug["raster_bounds"])
+                ))
+                st.markdown("**Polygon bounds:** `{}`".format(
+                    tuple(round(v, 4) for v in align_debug["polygon_bounds"])
+                    if align_debug["polygon_bounds"] else "N/A"
+                ))
+                st.markdown(f"**Overlap ratio:** {align_debug['overlap_ratio']:.2%}")
+                st.markdown(f"**Coord space:** {align_debug['coordinate_space']}")
+            with col_dbg2:
+                for note in align_debug.get("notes", []):
+                    st.info(note)
+            dbg_fig = alignment_debug_figure(
+                image, R["polygons"], transform=R["effective_transform"]
+            )
+            st.pyplot(dbg_fig)
+            plt.close(dbg_fig)
+
+    # ── DOWNLOADS (all use pre-computed data — no recomputation on click) ──
+    st.markdown("""<div class="section-header"><div class="sh-icon">📥</div>Downloads</div>""", unsafe_allow_html=True)
+
+    col_dl1, col_dl2, col_dl3, col_dl4 = st.columns(4)
+    with col_dl1:
+        st.download_button("📸 Overlay PNG", data=R["sbs_png"], file_name="solar_overlay.png", mime="image/png")
+    with col_dl2:
+        st.download_button("📍 GeoJSON", data=R["geojson_str"], file_name="roof_polygons.geojson", mime="application/json")
+    with col_dl3:
+        st.download_button("📄 Meta JSON", data=R["meta_sidecar"], file_name="footprints.meta.json", mime="application/json")
+    with col_dl4:
+        st.download_button("📝 Report (TXT)", data=R["report"], file_name="solar_report.txt", mime="text/plain")
+
+    st.caption("**Enriched exports:**")
+    col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+    with col_e1:
+        st.download_button("📊 Enriched CSV", data=R["csv_str"], file_name="roofs_enriched.csv", mime="text/csv")
+    with col_e2:
+        st.download_button("📋 Tile Summary", data=R["tile_summary"], file_name="tile_summary.json", mime="application/json")
+    with col_e3:
+        st.download_button("📸 Policy/Market", data=R["snapshot"], file_name="policy_market_snapshot.json", mime="application/json")
+    with col_e4:
+        if show_alignment_debug and align_debug:
+            debug_log = json.dumps({
+                "alignment_debug": {k: (list(v) if isinstance(v, tuple) else v) for k, v in align_debug.items()},
+                "confidence": confidence_to_dict(tile_conf),
+                "warnings": warn_list,
+            }, indent=2)
+            st.download_button("🔍 Debug Log", data=debug_log, file_name="debug_log.json", mime="application/json")
+        else:
+            st.caption("Enable debug for log.")
+
+    # ── Disclaimer ──
+    st.markdown(f'<div style="margin-top:1rem;padding:14px 18px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;font-size:0.78rem;color:#92400E;">{config.pre_assessment_disclaimer}</div>', unsafe_allow_html=True)
 
 elif image is not None and mask is None:
     st.info("Image loaded but no mask available. Provide a mask/label file or switch to Synthetic mode.")
 else:
-    # Landing state
     st.markdown("""
     <div style="text-align:center;padding:60px 20px;">
         <div style="font-size:48px;margin-bottom:16px;">☀️</div>
         <h2 style="color:#0F172A;font-weight:700;">Ready to Analyze</h2>
         <p style="color:#64748B;max-width:480px;margin:0 auto;">
-            Select a data mode in the sidebar and click <strong>Run Pipeline</strong>
+            Open the sidebar (☰) to configure settings, then click <strong>Run Pipeline</strong>
             to start analyzing rooftop solar potential.
         </p>
     </div>
