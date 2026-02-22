@@ -1,0 +1,364 @@
+============================================================
+  SOLAR PRE-ASSESSMENT TOOL — AUDIT REPORT
+  Date: 2026-02-22
+  Codebase: d:\PROJECTS\AIML-Hackathon-21feb\satellite\
+  Total: 8 Python modules, ~1,972 LOC
+============================================================
+
+
+ARCHITECTURE OVERVIEW
+---------------------
+
+  GeoTIFF / Synthetic
+        |
+        v
+    data.py  ──────────> train.py / infer.py
+        |                       |
+        +----------+------------+
+                   |
+                   v
+            vectorize.py
+              /       \
+             v         v
+        estimate.py   viz.py
+              \       /
+               v     v
+              app.py
+
+  utils.py provides CRS, area, and alignment helpers to data.py and vectorize.py.
+
+
+MODULE INVENTORY
+----------------
+
+  Module          Lines   Responsibility
+  ----------      -----   ------------------------------------------------
+  utils.py          219   CRS detection, UTM reprojection, area computation,
+                          alignment checks
+  data.py           355   Image/mask loading, RGB prep, GeoJSON labels,
+                          synthetic tiles, PyTorch dataset
+  vectorize.py      220   Mask -> polygons, GeoJSON export, metadata sidecar
+  viz.py            182   RGB/mask display, polygon overlay, 3-panel comparison,
+                          annotations
+  estimate.py       227   SolarConfig dataclass, per-roof/aggregate estimation,
+                          report formatting
+  train.py          272   U-Net training with DiceBCE loss, data discovery,
+                          train/val split
+  infer.py          186   Model loading, single-tile prediction,
+                          GeoTIFF mask export
+  app.py            311   Streamlit UI with data mode selector, pipeline
+                          execution, exports
+
+
+============================================================
+  CURRENT FEATURES
+============================================================
+
+DATA PIPELINE
+  - GeoTIFF loading with CRS/transform preservation
+  - Multi-band RGB handling (any band count, percentile clipping)
+  - GeoJSON footprint loading and rasterization
+  - Synthetic tile generator (zero-data demo mode)
+  - PyTorch SpaceNetDataset with resize normalization
+
+GEOSPATIAL INTELLIGENCE
+  - Automatic CRS detection (projected vs. geographic)
+  - UTM zone auto-selection for metric area computation
+  - Polygon-to-raster alignment sanity checks
+  - GeoJSON export with .meta.json sidecar (CRS, transform, provenance)
+  - Graceful degradation when pyproj is missing
+
+ML PIPELINE
+  - U-Net with ResNet-34 encoder (segmentation-models-pytorch)
+  - DiceBCE combined loss function
+  - Auto data discovery (images/ + masks/ or labels/)
+  - Inference with automatic upscaling to original resolution
+  - Predicted masks saved as GeoTIFFs with source CRS/transform
+
+SOLAR ESTIMATION
+  - Configurable SolarConfig dataclass with India-specific defaults
+  - Per-roof and aggregate calculations
+  - Clear metric vs. pixel-based labelling
+  - Explicit limitations list and pre-assessment disclaimer
+  - Formatted text report with assumptions breakdown
+
+DEMO APP
+  - Streamlit UI with Synthetic/SpaceNet toggle
+  - Configurable solar assumptions sidebar
+  - 3-panel visualization (satellite | mask | overlay)
+  - Metrics dashboard (roofs, area, kW, kWh)
+  - Download buttons for PNG overlay, GeoJSON, and text report
+
+
+============================================================
+  STRENGTHS (PROS)
+============================================================
+
+  1. MODULAR DESIGN
+     Each module has a clear, single responsibility. Easy to test
+     in isolation.
+
+  2. DEFENSIVE PROGRAMMING
+     Graceful fallbacks for missing pyproj, torch, CRS.
+     Warnings instead of crashes.
+
+  3. GEOSPATIAL CORRECTNESS
+     CRS-aware area computation, UTM auto-selection, alignment
+     validation — rare in MVP code.
+
+  4. TRANSPARENT ASSUMPTIONS
+     SolarConfig dataclass makes every assumption explicit and
+     configurable. Limitations are stated upfront.
+
+  5. ZERO-DATA DEMO
+     Synthetic mode lets the entire pipeline run without any external
+     data — critical for hackathon demos.
+
+  6. GEOJSON SIDECAR PATTERN
+     Avoids the GeoJSON-spec-vs-CRS trap. Metadata sidecar preserves
+     coordinate system info safely.
+
+  7. TYPE HINTS + DOCSTRINGS
+     Consistent across all modules. Makes code easy to read and extend.
+
+  8. CLI + GUI
+     Both argparse CLI scripts and Streamlit UI — flexible for
+     different users.
+
+
+============================================================
+  WEAKNESSES (CONS)
+============================================================
+
+CODE QUALITY ISSUES
+-------------------
+
+  1. [HIGH] No unit tests
+     Entire project has zero test files. Any refactor risks silent
+     breakage.
+
+  2. [MEDIUM] No logging framework
+     Uses print() and warnings.warn() everywhere. No log levels,
+     no structured output.
+
+  3. [MEDIUM] clean_polygon duplication
+     Defined in vectorize.py but should live in utils.py.
+     Was originally imported from there.
+
+  4. [MEDIUM] Hardcoded paths
+     app.py uses Path("data/raw"), outputs/, checkpoints/ as
+     literals. No env-var or config file support.
+
+  5. [LOW] Mixed print/warning style
+     Some functions emit print("...") while others use
+     warnings.warn(). Inconsistent feedback channel.
+
+  6. [LOW] No __all__ exports
+     No explicit public API per module.
+
+
+ROBUSTNESS ISSUES
+-----------------
+
+  7. [HIGH] No error handling in app.py
+     Pipeline crash -> raw traceback in Streamlit. No try/except
+     around vectorize or estimate calls.
+
+  8. [MEDIUM] UTM zone calculation
+     pick_local_projected_crs builds EPSG as hemisphere * 100 +
+     zone_number. This happens to produce correct codes (326*100+1
+     = 32601) but the math is non-obvious and could confuse
+     maintainers.
+
+  9. [MEDIUM] performance_ratio unused  *** CRITICAL BUG ***
+     SolarConfig.performance_ratio = 0.78 is defined but NEVER
+     USED in estimate_single_roof(). The calculation goes:
+       usable_area * density * monthly_factor
+     The performance_ratio is completely ignored, making solar
+     estimates ~28% too optimistic.
+
+  10. [MEDIUM] No input validation on uploaded tiles
+      app.py upload handler doesn't check band count, dtype, or
+      dimensions. Corrupt/unexpected files could crash.
+
+  11. [MEDIUM] Inference normalisation mismatch
+      infer.py normalizes to [0,1] by dividing by 255, but
+      train.py's dataset normalizes via ImageNet mean/std.
+      Training-inference mismatch will hurt model accuracy.
+
+
+ARCHITECTURE ISSUES
+-------------------
+
+  12. [MEDIUM] No pipeline orchestrator
+      app.py manually chains load->vectorize->estimate->viz.
+      A Pipeline class or function would be cleaner and testable.
+
+  13. [HIGH] Model evaluation absent
+      No IoU/Dice/F1 evaluation script. No way to quantify
+      model quality.
+
+  14. [MEDIUM] No data augmentation
+      train.py has no augmentation (flips, rotations, color jitter).
+      Will overfit on small datasets.
+
+  15. [LOW] SpaceNetDataset fallback stub
+      If torch is missing, a stub class is defined that raises on
+      __init__ — but __len__ and __getitem__ methods on the stub
+      aren't fully defined.
+
+
+============================================================
+  CRITICAL BUG
+============================================================
+
+  *** performance_ratio IS NEVER APPLIED IN SOLAR CALCULATIONS ***
+
+  SolarConfig.performance_ratio = 0.78 exists as a field but
+  estimate_single_roof() doesn't use it. The monthly generation
+  formula is:
+
+    system_kw * monthly_generation_kwh_per_kw
+
+  It should be:
+
+    system_kw * monthly_generation_kwh_per_kw * performance_ratio
+
+  Or the monthly_generation_kwh_per_kw value should already
+  account for it (which is the case if using 110 kWh/kW — but
+  this is ambiguous and should be documented).
+
+
+============================================================
+  FEATURES THAT CAN BE ADDED (PRIORITIZED)
+============================================================
+
+TIER 1 — QUICK WINS (1-2 hours each)
+-------------------------------------
+
+  - Unit tests for core functions (compute_area_m2,
+    mask_to_polygons, estimate_single_roof)
+    Impact: CRITICAL | Effort: Low
+
+  - Error handling wrapper in app.py (try/except around pipeline
+    with st.error display)
+    Impact: CRITICAL | Effort: Low
+
+  - Fix performance_ratio — either use it or document that
+    monthly_generation_kwh_per_kw already accounts for it
+    Impact: CRITICAL | Effort: Trivial
+
+  - Logging module — replace print() with
+    logging.getLogger(__name__)
+    Impact: MEDIUM | Effort: Low
+
+  - .env / config file for paths (DATA_DIR, OUTPUT_DIR,
+    CHECKPOINT_DIR)
+    Impact: MEDIUM | Effort: Low
+
+
+TIER 2 — MODEL IMPROVEMENTS (4-8 hours each)
+---------------------------------------------
+
+  - Data augmentation
+    Impact: HIGH
+    Horizontal/vertical flips, random rotation, color jitter in
+    SpaceNetDataset.
+
+  - Evaluation script
+    Impact: HIGH
+    IoU, Dice, precision/recall per tile. Essential for comparing
+    model versions.
+
+  - Training-inference normalisation alignment
+    Impact: HIGH
+    Use same ImageNet mean/std in both train.py and infer.py.
+
+  - Ensemble / TTA (test-time augmentation)
+    Impact: MEDIUM
+    Average predictions over flipped/rotated inputs for better masks.
+
+  - Multi-resolution inference
+    Impact: MEDIUM
+    Sliding window for tiles larger than 256x256.
+
+
+TIER 3 — SOLAR ESTIMATION ENHANCEMENTS
+---------------------------------------
+
+  - Regional irradiance lookup
+    Impact: HIGH
+    Use lat/lon to fetch NREL/ISRO solar resource data instead of
+    flat 4.5 h/day.
+
+  - Roof tilt/azimuth estimation
+    Impact: MEDIUM
+    Use shadow direction from imagery, or assume flat + apply
+    correction factor.
+
+  - Shading analysis
+    Impact: MEDIUM
+    DSM-based (if LiDAR data available) or proxy from building
+    height differences.
+
+  - Financial estimation
+    Impact: MEDIUM
+    System cost (Rs/kW), payback period, net metering savings at
+    state-specific tariffs.
+
+  - PM Surya Ghar subsidy calculator
+    Impact: MEDIUM
+    Apply central + state subsidy slabs based on system size.
+
+
+TIER 4 — PLATFORM FEATURES
+---------------------------
+
+  - Batch processing
+    Impact: MEDIUM
+    Process a full SpaceNet AOI (multiple tiles) with aggregate
+    reporting.
+
+  - Map-based input
+    Impact: MEDIUM
+    Leaflet/Folium map widget to select location, auto-fetch
+    satellite imagery.
+
+  - Database/history
+    Impact: LOW
+    Store past assessments in SQLite for comparison.
+
+  - PDF report export
+    Impact: LOW
+    Professional assessment report with branding.
+
+  - API endpoint
+    Impact: LOW
+    FastAPI wrapper for headless pipeline access.
+
+  - Multi-user auth
+    Impact: LOW
+    Login system for deployment scenarios.
+
+
+============================================================
+  SUMMARY SCORECARD
+============================================================
+
+  Dimension                Score    Notes
+  ---------                -----    -----
+  Architecture             4/5      Clean module separation, clear data flow
+  Code Quality             3/5      Good style, but no tests, no logging
+  Geospatial Correctness   5/5      Excellent CRS handling, alignment checks
+  ML Pipeline              3/5      Functional but untrained, no evaluation
+  Solar Estimation         4/5      Transparent assumptions, performance_ratio bug
+  UI/UX                    4/5      Clean Streamlit app with downloads
+  Documentation            4/5      Comprehensive README, no API docs
+  Testing                  1/5      Zero automated tests
+  Production Readiness     2/5      MVP quality — needs error handling, tests
+
+  OVERALL: Solid hackathon MVP with genuinely good geospatial
+  engineering, but needs tests and the performance_ratio fix
+  before any real-world use.
+
+============================================================

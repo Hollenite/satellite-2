@@ -1,0 +1,102 @@
+[
+    {
+        "location_name": "Wuhan",
+        "adoption_density_score": 0.30,
+        "adoption_momentum_score": 0.65,
+        "installed_pv_density_per_km2": 18.0,
+        "program_eligibility_tag": "National DG Subsidy",
+        "market_maturity_segment": "Growth",
+        "customer_mix_proxy": "Mixed",
+        "notes": "Strong government push for distributed solar. Industrial rooftops lead adoption."
+    },
+    {
+        "location_name": "Taiwan",
+        "adoption_density_score": 0.45,
+        "adoption_momentum_score": 0.75,
+        "installed_pv_density_per_km2": 32.0,
+        "program_eligibility_tag": "20-Year FIT Programme",
+        "market_maturity_segment": "Growth",
+        "customer_mix_proxy": "Mixed",
+        "notes": "Government targets 20 GW solar by 2025. Rooftop is key growth segment."
+    },
+    {
+        "location_name": "Los Angeles",
+        "adoption_density_score": 0.65,
+        "adoption_momentum_score": 0.50,
+        "installed_pv_density_per_km2": 85.0,
+        "program_eligibility_tag": "NEM 3.0 + Federal ITC",
+        "market_maturity_segment": "Mature",
+        "customer_mix_proxy": "Residential-heavy",
+        "notes": "Highest residential solar penetration in US. NEM 3.0 slowing new installs."
+    },
+    {
+        "location_name": "Ottawa",
+        "adoption_density_score": 0.15,
+        "adoption_momentum_score": 0.45,
+        "installed_pv_density_per_km2": 8.0,
+        "program_eligibility_tag": "Greener Homes Grant + Net Metering",
+        "market_maturity_segment": "Emerging",
+        "customer_mix_proxy": "Residential-heavy",
+        "notes": "Low penetration due to cold climate, but growing awareness. Federal grants help."
+    },
+    {
+        "location_name": "Cairo",
+        "adoption_density_score": 0.10,
+        "adoption_momentum_score": 0.35,
+        "installed_pv_density_per_km2": 5.0,
+        "program_eligibility_tag": "Net Metering Framework",
+        "market_maturity_segment": "Emerging",
+        "customer_mix_proxy": "C&I-heavy",
+        "notes": "Excellent irradiance but low tariffs and awareness limit residential adoption."
+    },
+    {
+        "location_name": "Milan",
+        "adoption_density_score": 0.40,
+        "adoption_momentum_score": 0.70,
+        "installed_pv_density_per_km2": 30.0,
+        "program_eligibility_tag": "Superbonus + Scambio sul Posto",
+        "market_maturity_segment": "Growth",
+        "customer_mix_proxy": "Mixed",
+        "notes": "Superbonus tax deductions driving massive adoption. High electricity prices help."
+    },
+    {
+        "location_name": "Santiago",
+        "adoption_density_score": 0.25,
+        "adoption_momentum_score": 0.60,
+        "installed_pv_density_per_km2": 15.0,
+        "program_eligibility_tag": "Net Billing + Casa Solar",
+        "market_maturity_segment": "Growth",
+        "customer_mix_proxy": "Mixed",
+        "notes": "Excellent solar resource. Net billing law expanding small-scale adoption."
+    },
+    {
+        "location_name": "Cordoba",
+        "adoption_density_score": 0.12,
+        "adoption_momentum_score": 0.30,
+        "installed_pv_density_per_km2": 6.0,
+        "program_eligibility_tag": "National DG Law",
+        "market_maturity_segment": "Emerging",
+        "customer_mix_proxy": "Residential-heavy",
+        "notes": "Economic instability slows adoption despite good solar resource."
+    },
+    {
+        "location_name": "Venice",
+        "adoption_density_score": 0.15,
+        "adoption_momentum_score": 0.25,
+        "installed_pv_density_per_km2": 4.0,
+        "program_eligibility_tag": "Superbonus (heritage restrictions)",
+        "market_maturity_segment": "Emerging",
+        "customer_mix_proxy": "Residential-heavy",
+        "notes": "Historic centre severely restricts rooftop modifications. Outer islands more viable."
+    },
+    {
+        "location_name": "New York",
+        "adoption_density_score": 0.35,
+        "adoption_momentum_score": 0.60,
+        "installed_pv_density_per_km2": 25.0,
+        "program_eligibility_tag": "NY-Sun + Federal ITC + VDER",
+        "market_maturity_segment": "Growth",
+        "customer_mix_proxy": "Mixed",
+        "notes": "Strong state incentives. Community solar and VDER expanding market."
+    }
+]

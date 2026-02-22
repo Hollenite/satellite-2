@@ -1,0 +1,52 @@
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ==========================
+# IDE / Editor
+# ==========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Project-specific
+# ==========================
+
+# Model checkpoints (too large for git — download or train locally)
+checkpoints/*.pth
+checkpoints/*.pt
+checkpoints/*.onnx
+
+# Raw satellite data (large — download via scripts)
+data/raw/
+data/processed/
+
+# Keep config files (they are small and needed for deployment)
+# !data/config/
+
+# Outputs (generated at runtime)
+outputs/
+
+# ==========================
+# Misc
+# ==========================
+*.log
+*.egg-info/
+dist/
+build/
+.eggs/

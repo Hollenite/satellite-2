@@ -1,0 +1,102 @@
+[
+    {
+        "location_name": "Wuhan",
+        "country": "China",
+        "region": "Central China",
+        "annual_yield_kwh_per_kw": 1100,
+        "monthly_yield_kwh_per_kw": 91.7,
+        "source_name": "PVGIS / CMA",
+        "source_note": "Subtropical monsoon climate with high summer humidity; moderate GHI",
+        "confidence": "Medium"
+    },
+    {
+        "location_name": "Taiwan",
+        "country": "Taiwan (ROC)",
+        "region": "East Asia",
+        "annual_yield_kwh_per_kw": 1200,
+        "monthly_yield_kwh_per_kw": 100.0,
+        "source_name": "PVGIS / CWA Taiwan",
+        "source_note": "Subtropical island; typhoon season and humidity reduce yield May–Oct",
+        "confidence": "Medium"
+    },
+    {
+        "location_name": "Los Angeles",
+        "country": "USA",
+        "region": "California, West Coast",
+        "annual_yield_kwh_per_kw": 1700,
+        "monthly_yield_kwh_per_kw": 141.7,
+        "source_name": "NREL PVWatts / TMY3",
+        "source_note": "Mediterranean climate with very high GHI; minimal cloud cover; excellent solar resource",
+        "confidence": "High"
+    },
+    {
+        "location_name": "Ottawa",
+        "country": "Canada",
+        "region": "Ontario, Eastern Canada",
+        "annual_yield_kwh_per_kw": 1200,
+        "monthly_yield_kwh_per_kw": 100.0,
+        "source_name": "NRCan / PVGIS",
+        "source_note": "Continental climate with cold winters and snow cover; strong summer irradiance",
+        "confidence": "High"
+    },
+    {
+        "location_name": "Cairo",
+        "country": "Egypt",
+        "region": "North Africa",
+        "annual_yield_kwh_per_kw": 1800,
+        "monthly_yield_kwh_per_kw": 150.0,
+        "source_name": "PVGIS / IRENA",
+        "source_note": "Arid desert climate with very high GHI year-round; dust soiling is a factor",
+        "confidence": "High"
+    },
+    {
+        "location_name": "Milan",
+        "country": "Italy",
+        "region": "Northern Italy",
+        "annual_yield_kwh_per_kw": 1200,
+        "monthly_yield_kwh_per_kw": 100.0,
+        "source_name": "PVGIS / GSE Italy",
+        "source_note": "Humid subtropical climate; foggy winters; good summer irradiance",
+        "confidence": "High"
+    },
+    {
+        "location_name": "Santiago",
+        "country": "Chile",
+        "region": "Central Chile",
+        "annual_yield_kwh_per_kw": 1650,
+        "monthly_yield_kwh_per_kw": 137.5,
+        "source_name": "PVGIS / Explorador Solar Chile",
+        "source_note": "Mediterranean climate with very high altitude GHI; dry clear skies most of year",
+        "confidence": "High"
+    },
+    {
+        "location_name": "Cordoba",
+        "country": "Argentina",
+        "region": "Central Argentina",
+        "annual_yield_kwh_per_kw": 1500,
+        "monthly_yield_kwh_per_kw": 125.0,
+        "source_name": "PVGIS / CAMMESA",
+        "source_note": "Subtropical with dry winters; good solar resource; moderate humidity in summer",
+        "confidence": "Medium"
+    },
+    {
+        "location_name": "Venice",
+        "country": "Italy",
+        "region": "Northeast Italy",
+        "annual_yield_kwh_per_kw": 1100,
+        "monthly_yield_kwh_per_kw": 91.7,
+        "source_name": "PVGIS / GSE Italy",
+        "source_note": "High humidity, frequent fog and overcast; lagoon microclimate reduces yield",
+        "confidence": "Medium"
+    },
+    {
+        "location_name": "New York",
+        "country": "USA",
+        "region": "Northeast USA",
+        "annual_yield_kwh_per_kw": 1300,
+        "monthly_yield_kwh_per_kw": 108.3,
+        "source_name": "NREL PVWatts / TMY3",
+        "source_note": "Humid continental climate; seasonal variation; snow cover in winter, good summer yield",
+        "confidence": "High"
+    }
+]

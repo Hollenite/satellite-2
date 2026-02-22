@@ -1,0 +1,364 @@
+================================================================================
+  AI-ASSISTED ROOFTOP SOLAR PRE-ASSESSMENT TOOL — PROJECT ANALYSIS
+  Generated: 22 February 2026
+================================================================================
+
+1. PROJECT OVERVIEW
+-------------------
+This project is an AI-assisted tool that analyses satellite/aerial imagery 
+to detect rooftop buildings and produce pre-assessment solar energy estimates. 
+It was built as a hackathon MVP demonstrating the full pipeline from raw 
+satellite image → deep learning segmentation → vectorized roof polygons → 
+solar capacity estimates.
+
+The core idea: given a satellite tile of a neighbourhood, automatically:
+  (a) Segment buildings from the background
+  (b) Convert the pixel mask into vector polygons (GeoJSON)
+  (c) Estimate each roof's solar panel capacity (kW) and energy yield (kWh)
+
+This is directly relevant to India's PM Surya Ghar (rooftop solar subsidy) 
+programme, where millions of households need rapid pre-assessment.
+
+
+2. TECHNOLOGY STACK
+-------------------
+- Language:    Python 3.13
+- UI:          Streamlit (interactive web dashboard)
+- ML:          PyTorch + segmentation-models-pytorch (U-Net with ResNet34)
+- Geospatial:  rasterio (GeoTIFF I/O), shapely (geometry), pyproj (CRS/area)
+- Viz:         matplotlib, Pillow
+- Other:       numpy, dataclasses, argparse
+
+
+3. PROJECT STRUCTURE
+--------------------
+satellite/
+├── app.py                   # Streamlit UI — main entry point
+├── requirements.txt         # Python dependencies
+├── README.md                # Documentation + demo instructions
+├── AUDIT_REPORT.txt         # Code quality audit
+│
+├── src/                     # Core library modules
+│   ├── __init__.py
+│   ├── data.py              # Data loading, RGB prep, synthetic generation
+│   ├── train.py             # U-Net training loop
+│   ├── infer.py             # Model inference (predict mask from image)
+│   ├── vectorize.py         # Mask → polygon conversion + GeoJSON export
+│   ├── estimate.py          # Solar capacity/energy estimation
+│   ├── utils.py             # CRS handling, area computation, alignment
+│   └── viz.py               # Visualization helpers (overlays, side-by-side)
+│
+├── scripts/                 # Utility scripts
+│   ├── download_whu.py      # Download WHU Building Dataset
+│   ├── download_spacenet2.py# Download SpaceNet 2 (needs AWS account)
+│   └── test_pipeline.py     # End-to-end pipeline smoke test
+│
+├── checkpoints/             # Trained model weights
+│   ├── best.pth             # Best validation Dice checkpoint
+│   └── final.pth            # Final epoch checkpoint
+│
+├── data/raw/                # Training data
+│   ├── images/              # 204 satellite image tiles (512×512, GeoTIFF)
+│   └── masks/               # 204 binary building masks
+│
+└── outputs/                 # Inference outputs
+    └── test_pred_mask.tif   # Example predicted mask
+
+
+4. PIPELINE ARCHITECTURE
+-------------------------
+The system operates as a sequential pipeline with 5 stages:
+
+  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+  │ 1. DATA  │───▶│ 2. MODEL │───▶│ 3. VECTOR│───▶│ 4. SOLAR │───▶│ 5. UI    │
+  │  LOAD    │    │ INFERENCE│    │  -IZE    │    │ ESTIMATE │    │ DISPLAY  │
+  └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
+  GeoTIFF in      U-Net pred     Polygons out    kW/kWh per       Streamlit
+  + CRS/tfm       binary mask    + GeoJSON       roof             dashboard
+
+
+4.1 Stage 1: Data Loading (src/data.py)
+  - load_image(path) → reads GeoTIFF via rasterio, returns (bands, H, W) array
+    along with the affine transform and CRS metadata
+  - prepare_display_rgb(image) → converts any band configuration (1-band, 
+    3-band, multi-band) into an 8-bit RGB array for display, including
+    percentile-based contrast stretching
+  - generate_synthetic_tile(seed) → creates fake image + mask + transform for
+    zero-data demos (no model needed, proves the pipeline works)
+  - SpaceNetDataset → PyTorch Dataset class used during training; handles
+    loading, 3-band selection, resizing, and normalization
+
+4.2 Stage 2: Model Inference (src/infer.py)
+  - Architecture: U-Net with ResNet34 encoder (via segmentation-models-pytorch)
+  - Input: 3-band satellite tile resized to 256×256
+  - Output: sigmoid probability map → thresholded binary mask (0/1)
+  - The mask is resized back to the ORIGINAL tile resolution using nearest-
+    neighbour interpolation (preserves sharp building edges)
+  - Predicted masks are saved as single-band GeoTIFFs, preserving the CRS
+    and affine transform from the input image
+
+4.3 Stage 3: Vectorization (src/vectorize.py)
+  - mask_to_polygons(mask, transform, crs, min_area) → converts binary raster
+    mask into a list of Shapely polygon dictionaries
+  - Each polygon dict contains: geometry, area_value, area_unit, centroid
+  - Area is computed in metres² when a projected CRS is available (via pyproj),
+    otherwise reported in pixel² with a warning
+  - Small noise polygons are filtered out by min_area threshold
+  - polygons_to_geojson() writes FeatureCollection + a .meta.json sidecar file
+    containing CRS/transform metadata (GeoJSON spec doesn't support CRS natively)
+
+4.4 Stage 4: Solar Estimation (src/estimate.py)
+  - SolarConfig dataclass holds all configurable assumptions:
+      • roof_usability_factor = 0.65 (excludes tanks, stairs, shadows)
+      • panel_power_density_kw_per_m2 = 0.18 kW/m² (conservative India market)
+      • performance_ratio = 0.78 (inverter + wiring + soiling losses)
+      • monthly_generation_kwh_per_kw = 110 kWh/kW (India avg, DELIVERED)
+      • Optional: annual_generation_kwh_per_kw for direct override
+  - estimate_single_roof(area_m2, config) → computes:
+      usable_area = area × 0.65
+      system_kw   = usable_area × 0.18
+      monthly_kwh = system_kw × 110
+      annual_kwh  = monthly_kwh × 12  (or override if annual factor set)
+  - estimate_all_roofs(polygons) → aggregates per-roof estimates
+  - format_report() → human-readable text report with assumptions & disclaimers
+
+4.5 Stage 5: UI / Streamlit App (app.py)
+  - Sidebar controls: data mode (synthetic vs. real tiles), solar assumptions,
+    vectorization parameters (min area, simplification tolerance)
+  - Main panel shows: side-by-side view (raw tile | mask | polygon overlay),
+    solar estimates table, downloadable outputs
+  - Two demo modes:
+      Mode A (Ground-Truth): loads pre-existing masks — no model needed
+      Mode B (Model Inference): runs the trained U-Net on the tile
+  - Download buttons for: overlay PNG, GeoJSON polygons, meta.json, text report
+
+
+5. THE DEEP LEARNING MODEL
+---------------------------
+5.1 Architecture
+  U-Net with ResNet34 encoder (pretrained on ImageNet via SMP library).
+  - Encoder: ResNet34 (pretrained) — extracts hierarchical features
+  - Decoder: U-Net skip connections — reconstructs spatial resolution
+  - Input:   3 channels, 256×256
+  - Output:  1 channel (sigmoid logit), 256×256
+  - Total params: ~24M
+
+5.2 Loss Function
+  Combined DiceBCELoss:
+    loss = bce_weight × BCE + (1 - bce_weight) × (1 - Dice)
+  where Dice = 2|A∩B| / (|A|+|B|+ε)
+  This handles class imbalance (buildings are a minority of pixels) better
+  than pure BCE.
+
+5.3 Training Configuration
+  - Data: WHU Satellite Dataset I — 204 tiles from global cities
+          (512×512 pixels, multi-resolution 0.3m–2.5m)
+  - Split: 80% train (163 tiles) / 20% validation (41 tiles)
+  - Batch size: 4
+  - Optimizer: Adam, lr=1e-3
+  - Epochs: 10
+  - Input resize: 256×256 (for memory efficiency on CPU)
+
+5.4 Training Results
+  Epoch  | Train Loss | Val Loss | Val Dice
+  -------|-----------|----------|----------
+    1    |   0.8843  |  0.8201  |  0.5386
+    2    |   0.4040  |  0.3620  |  0.6970
+    3    |   0.3874  |  0.4061  |  0.6516
+    4    |   0.3614  |  0.3645  |  0.6890
+    5    |   0.3573  |  0.4575  |  0.6256
+    6    |   0.3334  |  0.3967  |  0.6840
+    7    |   0.3113  |  0.3514  |  0.7166  ← best
+    8    |   0.2974  |  0.3508  |  0.7080
+    9    |   0.2821  |    —     |    —
+   10    |     —     |  0.3509  |  0.7080
+  
+  Best validation Dice: 0.7166 (epoch 7) — saved as checkpoints/best.pth.
+  Training loss decreased steadily from 0.88 → 0.28, showing good convergence.
+
+
+6. GEOSPATIAL HANDLING
+-----------------------
+6.1 Coordinate Reference Systems (CRS)
+  - rasterio reads CRS from GeoTIFF metadata automatically
+  - pyproj is used to determine if CRS is geographic (lat/lon) or projected
+    (metres), and to reproject if needed for area computation
+  - pick_local_projected_crs() selects an appropriate UTM zone based on
+    the centroid of the data
+  - For synthetic data, CRS is None → areas reported in pixel²
+
+6.2 Area Computation (src/utils.py)
+  - compute_area_m2(polygon, crs) → if CRS is projected, uses Shapely's
+    .area directly (already in m²). If geographic, reprojects to local UTM
+    first, then computes area.
+  - This ensures accurate area-in-metres for solar estimation regardless
+    of input CRS.
+
+6.3 Alignment Validation
+  - validate_polygon_raster_alignment() checks that polygon bounds overlap
+    the raster bounds by at least a threshold (default 20%)
+  - Returns (bool, list[str]) — the bool indicates pass/fail, the list
+    contains warning messages displayed in the Streamlit UI
+
+
+7. SOLAR ESTIMATION METHOD
+---------------------------
+The solar estimation uses a simplified model suitable for pre-assessment:
+
+  Formula:
+    usable_area = roof_area_m2 × usability_factor (0.65)
+    system_kw   = usable_area × panel_density (0.18 kW/m²)
+    monthly_kwh = system_kw × monthly_gen_factor (110 kWh/kW)
+    annual_kwh  = monthly_kwh × 12
+
+  IMPORTANT: The monthly_generation_kwh_per_kw value (110) is a DELIVERED
+  value — it already accounts for:
+    • Solar irradiance (peak sun hours)
+    • System performance ratio (0.78)
+    • Inverter efficiency
+    • Wiring and soiling losses
+  
+  Do NOT multiply by performance_ratio again. The formula is:
+    monthly_kwh = system_kw × delivered_factor
+  NOT:
+    monthly_kwh = system_kw × raw_factor × performance_ratio
+
+  This is a conservative estimate for Indian residential rooftops. Regional
+  variation across India is typically 100–130 kWh/kW/month.
+
+
+8. DATASET DETAILS
+-------------------
+8.1 WHU Satellite Dataset I (currently used)
+  - Source: Wuhan University, GPCV Lab
+  - URL: https://gpcv.whu.edu.cn/data/building_dataset.html
+  - 204 tiles at 512×512 pixels from cities worldwide
+  - Multi-sensor (QuickBird, Worldview, IKONOS, ZY-3)
+  - Resolution varies 0.3m–2.5m per tile
+  - Manually delineated building footprint masks
+  - Free download, no AWS account needed (113 MB ZIP)
+
+8.2 Why not SpaceNet?
+  SpaceNet 2 (Las Vegas, 200×200m tiles) was the original target, but it's
+  hosted on AWS S3 as a requester-pays bucket. This requires an AWS account
+  with billing enabled — the user does not have one.
+
+8.3 Alternative datasets (documented but not used)
+  - SpaceNet 2 Las Vegas (via scripts/download_spacenet2.py — needs AWS)
+  - INRIA Aerial Image Labeling (5000×5000 tiles, building masks, free)
+  - WHU Aerial Dataset (8189 tiles at 512×512, 0.3m — 5 GB, download failed)
+
+
+9. KEY DESIGN DECISIONS
+------------------------
+• U-Net + ResNet34 encoder — standard, well-proven architecture for binary
+  segmentation; pretrained encoder accelerates training on small datasets.
+
+• Combined Dice + BCE loss — handles the class imbalance inherent in
+  building segmentation (buildings << background pixels).
+
+• 256×256 model input — a pragmatic choice for CPU training speed; the mask
+  is upscaled back to original resolution after inference.
+
+• GeoJSON + sidecar meta.json — GeoJSON spec (RFC 7946) mandates WGS84
+  and doesn't support arbitrary CRS. We store CRS/transform metadata in a
+  separate .meta.json file to preserve full geospatial context.
+
+• Synthetic fallback mode — allows full pipeline demonstration with zero
+  external data, useful for demos and testing.
+
+• Pixel-based fallback — when CRS is unavailable (synthetic or metadata-free
+  tiles), areas are reported in pixel² with clear labelling.
+
+• All solar estimation parameters are configurable via the Streamlit sidebar,
+  allowing users to adjust for their specific region/market.
+
+
+10. CURRENT STATUS & LIMITATIONS
+---------------------------------
+✅ What works:
+  - Full pipeline: load tile → infer mask → vectorize → estimate → display
+  - Trained model (val Dice 0.7166) on 204 real satellite tiles
+  - Interactive Streamlit UI with synthetic + real data modes
+  - GeoJSON export with CRS metadata sidecar
+  - Solar reports with explicit assumptions and disclaimers
+
+⚠️ Limitations:
+  - Model trained on CPU (no GPU available) — training was slow (~50 min)
+  - Only 204 training tiles — more data would significantly improve the model
+  - Val Dice 0.72 is decent for an MVP but far from production (>0.85 needed)
+  - 256×256 model input loses fine detail from 512×512 tiles
+  - No data augmentation currently (would improve generalization)
+  - Solar estimates are pre-assessment only — not engineering-grade
+  - WHU dataset is global, not India-specific — fine-tuning on Indian
+    rooftop imagery would be needed for production use
+
+
+11. HOW TO RUN
+--------------
+Prerequisites: Python 3.10+, pip
+
+  # Install dependencies
+  py -m pip install -r requirements.txt
+
+  # Run the Streamlit app
+  py -m streamlit run app.py
+
+  # Train the model (if you have data in data/raw/)
+  py -m src.train --data_dir data/raw --epochs 10
+
+  # Run inference on a single tile
+  py -m src.infer --image data/raw/images/9_3.tif --checkpoint checkpoints/best.pth
+
+  # Test the full pipeline
+  py -c "import sys; sys.path.insert(0, '.'); exec(open('scripts/test_pipeline.py').read())"
+
+
+12. FILE-BY-FILE SUMMARY
+--------------------------
+app.py (311 lines)
+  Streamlit dashboard. Sidebar: data mode selector (Synthetic / SpaceNet),
+  solar assumption sliders, vectorization params. Main: tile display, 
+  inference trigger, results table, download buttons (PNG, GeoJSON, meta.json,
+  report text).
+
+src/data.py (355 lines)
+  Data I/O. load_image() reads GeoTIFF. prepare_display_rgb() normalises
+  any band config to 8-bit RGB. generate_synthetic_tile() creates demo data.
+  SpaceNetDataset is the PyTorch training dataset — loads tiles, selects
+  3 bands, resizes, normalizes to [0,1].
+
+src/train.py (272 lines)
+  Training loop. DiceBCELoss combines binary cross-entropy with Dice loss.
+  create_model() builds U-Net via SMP. train_one_epoch() and validate()
+  implement the standard PyTorch train/eval loop. discover_pairs() finds
+  matching image-mask files. main() parses CLI args and runs training.
+
+src/infer.py (186 lines)
+  Inference. load_model() loads checkpoint into U-Net. predict_mask() takes
+  a (bands, H, W) array, resizes to 256×256, runs forward pass, thresholds,
+  and resizes mask back to original resolution. save_mask_geotiff() writes
+  the predicted mask as a GeoTIFF with CRS/transform.
+
+src/vectorize.py (220 lines)
+  Raster-to-vector. mask_to_polygons() uses rasterio.features.shapes() to
+  extract polygons from binary mask. clean_polygon() simplifies and filters.
+  polygons_to_geojson() writes FeatureCollection + .meta.json sidecar.
+
+src/estimate.py (227 lines)
+  Solar estimation. SolarConfig dataclass with Indian rooftop defaults.
+  estimate_single_roof() computes usable area, kW, kWh. estimate_all_roofs()
+  aggregates. format_report() generates human-readable text with assumptions.
+
+src/utils.py (219 lines)
+  Geospatial utilities. CRS helpers (is_projected_crs, pick_local_projected_crs,
+  reproject_geometry). compute_area_m2() handles area in any CRS.
+  validate_polygon_raster_alignment() checks bounds overlap.
+
+src/viz.py (182 lines)
+  Visualization. show_rgb(), show_mask(), overlay_polygons() for matplotlib.
+  side_by_side() creates 3-panel figure (raw | mask | overlay).
+
+================================================================================
+  END OF ANALYSIS
+================================================================================
