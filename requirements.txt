@@ -6,7 +6,8 @@ shapely>=2.0
 pyproj>=3.5
 Pillow>=9.5
 
-# Deep learning
+# Deep learning (CPU-only — keeps image small for cloud deployment)
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.0
 torchvision>=0.15
 segmentation-models-pytorch>=0.3.3
