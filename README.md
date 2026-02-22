@@ -1,4 +1,4 @@
-# ☀️ AI-Assisted Rooftop Solar Pre-Assessment Tool
+# ☀️ RoofIntel
 
 > **Pre-assessment only** — this tool provides rough estimates for initial screening.
 > It is NOT a substitute for professional site survey or engineering design.
