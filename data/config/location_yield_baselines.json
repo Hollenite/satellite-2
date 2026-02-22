@@ -98,5 +98,15 @@
         "source_name": "NREL PVWatts / TMY3",
         "source_note": "Humid continental climate; seasonal variation; snow cover in winter, good summer yield",
         "confidence": "High"
+    },
+    {
+        "location_name": "Pune",
+        "country": "India",
+        "region": "Maharashtra, Western India",
+        "annual_yield_kwh_per_kw": 1500,
+        "monthly_yield_kwh_per_kw": 125.0,
+        "source_name": "MNRE / PVGIS India",
+        "source_note": "Hot semi-arid climate with excellent GHI ~5.5 kWh/m²/day; monsoon season June-Sept reduces yield",
+        "confidence": "High"
     }
 ]

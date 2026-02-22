@@ -128,5 +128,18 @@
         "example_tariff_residential_per_kwh": 0.22,
         "example_tariff_unit": "USD",
         "notes": "Strong state support. Community solar programmes available. Con Edison territory."
+    },
+    {
+        "location_name": "Pune",
+        "state": "Maharashtra",
+        "country": "India",
+        "compensation_regime": "Net Metering + PM Surya Ghar Muft Bijli Yojana",
+        "subsidy_available": true,
+        "subsidy_notes": "Central Govt subsidy: ₹30,000/kW for first 2 kW, ₹78,000 for 3+ kW (cap). State Govt subsidy: ₹15,000 for 1 kW, ₹30,000 for 2+ kW. Total subsidy up to ₹1,08,000.",
+        "policy_source": "MNRE / MSEDCL Maharashtra",
+        "policy_date": "2024-06",
+        "example_tariff_residential_per_kwh": 8.0,
+        "example_tariff_unit": "INR",
+        "notes": "PM Surya Ghar scheme provides subsidised rooftop solar for residential consumers. MSEDCL net metering available."
     }
 ]

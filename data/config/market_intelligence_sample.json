@@ -98,5 +98,15 @@
         "market_maturity_segment": "Growth",
         "customer_mix_proxy": "Mixed",
         "notes": "Strong state incentives. Community solar and VDER expanding market."
+    },
+    {
+        "location_name": "Pune",
+        "adoption_density_score": 0.35,
+        "adoption_momentum_score": 0.70,
+        "installed_pv_density_per_km2": 22.0,
+        "program_eligibility_tag": "PM Surya Ghar + MSEDCL Net Metering",
+        "market_maturity_segment": "Growth",
+        "customer_mix_proxy": "Residential-heavy",
+        "notes": "Strong adoption driven by PM Surya Ghar subsidy scheme. Pune's tech-savvy population and high electricity costs accelerate residential solar."
     }
 ]

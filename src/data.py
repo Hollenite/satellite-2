@@ -209,16 +209,26 @@ def generate_synthetic_tile(
     width: int = 256,
     num_buildings: int = 8,
     seed: int = 42,
-) -> Tuple[np.ndarray, np.ndarray, rasterio.Affine, None]:
+    gsd_m: float = 0.3,
+) -> Tuple[np.ndarray, np.ndarray, rasterio.Affine, "rasterio.crs.CRS"]:
     """
     Generate a synthetic satellite tile with fake buildings for demo.
+
+    Uses a realistic ground sample distance (GSD) so that building
+    areas are reported in actual square metres rather than pixel².
+
+    Args:
+        gsd_m: ground sample distance in metres per pixel (default 0.3 m,
+               typical for high-res satellite imagery).
 
     Returns:
         image     — (3, H, W) uint8 fake RGB
         mask      — (H, W) uint8 binary mask
-        transform — affine from_bounds (pixel coordinates)
-        crs       — None (synthetic data has no real CRS)
+        transform — Affine with metric pixel size (gsd_m metres/pixel)
+        crs       — Projected CRS (EPSG:32643 — UTM 43N, covers Pune/Maharashtra)
     """
+    from rasterio.crs import CRS
+
     rng = np.random.RandomState(seed)
 
     # Background: noisy green/brown terrain
@@ -254,8 +264,26 @@ def generate_synthetic_tile(
 
         mask[y1:y2, x1:x2] = 1
 
-    transform = from_bounds(0, 0, width, height, width, height)
-    return image, mask, transform, None
+    # Build an Affine transform with real metric resolution:
+    #   gsd_m metres per pixel, origin at a fake UTM easting/northing.
+    # Using a plausible origin in UTM Zone 43N (Pune area).
+    origin_easting = 500_000.0   # centre of UTM zone
+    origin_northing = 2_050_000.0
+    tile_width_m = width * gsd_m
+    tile_height_m = height * gsd_m
+    transform = from_bounds(
+        origin_easting,
+        origin_northing,
+        origin_easting + tile_width_m,
+        origin_northing + tile_height_m,
+        width,
+        height,
+    )
+
+    # EPSG:32643 = WGS 84 / UTM zone 43N  (covers 72°E–78°E, includes Pune)
+    crs = CRS.from_epsg(32643)
+
+    return image, mask, transform, crs
 
 
 # ---------------------------------------------------------------------------

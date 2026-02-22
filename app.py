@@ -14,6 +14,8 @@ import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -443,6 +445,47 @@ def _format_smart(value: float, unit: str) -> tuple:
     return f"{value:,.0f}", unit
 
 
+def _compute_pm_surya_ghar_subsidy(system_kw: float) -> dict:
+    """Compute Indian central + state government subsidy per PM Surya Ghar scheme.
+
+    Subsidy chart (Residential):
+    ┌──────────┬──────────────┬──────────────┬─────────────┐
+    │ Capacity │ Central Govt │ State Govt   │ Total       │
+    ├──────────┼──────────────┼──────────────┼─────────────┤
+    │ 1 kW     │ ₹30,000      │ ₹15,000      │ ₹45,000     │
+    │ 2 kW     │ ₹60,000      │ ₹30,000      │ ₹90,000     │
+    │ 3 kW     │ ₹78,000      │ ₹30,000      │ ₹1,08,000   │
+    │ 4 kW     │ ₹78,000      │ ₹30,000      │ ₹1,08,000   │
+    │ 5 kW     │ ₹78,000      │ ₹30,000      │ ₹1,08,000   │
+    └──────────┴──────────────┴──────────────┴─────────────┘
+
+    Central subsidy formula:
+      - First 2 kW : ₹30,000 per kW
+      - Beyond 2 kW: capped at ₹78,000 total
+    State subsidy formula:
+      - 1 kW       : ₹15,000
+      - 2+ kW      : ₹30,000 (cap)
+    """
+    kw = min(system_kw, 5.0)  # subsidy applies up to 5 kW
+    if kw <= 0:
+        return {"central": 0, "state": 0, "total": 0}
+
+    # Central govt subsidy
+    if kw <= 2:
+        central = kw * 30_000
+    else:
+        central = 78_000  # capped
+
+    # State govt subsidy
+    if kw < 1.5:
+        state = 15_000
+    else:
+        state = 30_000  # capped at 30k for 2+ kW
+
+    total = central + state
+    return {"central": round(central), "state": round(state), "total": round(total)}
+
+
 # ---------------------------------------------------------------------------
 # Load config data (cached)
 # ---------------------------------------------------------------------------
@@ -534,7 +577,7 @@ if data_mode == "Synthetic demo":
     image, mask, transform, crs = generate_synthetic_tile(
         num_buildings=n_buildings, seed=int(seed)
     )
-    warnings_list.append("Using synthetic data — no real CRS. Area estimates are pixel-based.")
+    warnings_list.append("Using synthetic data — areas computed with 0.3 m/pixel GSD in projected CRS (EPSG:32643).")
 else:
     st.sidebar.subheader("Data Paths")
     data_dir = Path("data/raw")
@@ -746,11 +789,33 @@ if image is not None and mask is not None:
                     } if active_baseline else None,
                 }, indent=2)
 
-            # ── Compute annual savings ──
+            # ── Compute per-building savings using subsidy chart ──
             _pol = policy_records.get(selected_location_key)
             tariff = _pol.example_tariff_residential_per_kwh if (_pol and _pol.example_tariff_residential_per_kwh) else 0.10
             tariff_unit = _pol.example_tariff_unit if _pol else "USD"
-            annual_savings = aggregate["total_annual_kwh"] * tariff
+
+            per_building_savings = []
+            total_savings_electricity = 0
+            total_subsidy = 0
+            for i, r in enumerate(per_roof):
+                sys_kw = r["estimated_system_kw"]
+                annual_kwh = r["estimated_annual_kwh"]
+                monthly_kwh = r["estimated_monthly_kwh"]
+                # Use actual values (now realistic with GSD-based m² areas)
+                annual_elec_saving = annual_kwh * tariff
+                subsidy = _compute_pm_surya_ghar_subsidy(sys_kw)
+                per_building_savings.append({
+                    "building_id": i + 1,
+                    "system_kw": round(sys_kw, 2),
+                    "monthly_gen_kwh": round(monthly_kwh, 1),
+                    "annual_gen_kwh": round(annual_kwh, 1),
+                    "central_subsidy": subsidy["central"],
+                    "state_subsidy": subsidy["state"],
+                    "total_subsidy": subsidy["total"],
+                    "annual_elec_saving": round(annual_elec_saving, 2),
+                })
+                total_savings_electricity += annual_elec_saving
+                total_subsidy += subsidy["total"]
 
             # ── Store everything in session_state ──
             st.session_state["results"] = {
@@ -763,7 +828,9 @@ if image is not None and mask is not None:
                 "total_kw": aggregate["total_system_kw"],
                 "total_monthly": aggregate["total_monthly_kwh"],
                 "total_annual": aggregate["total_annual_kwh"],
-                "annual_savings": annual_savings,
+                "total_savings_electricity": round(total_savings_electricity, 2),
+                "total_subsidy": round(total_subsidy),
+                "per_building_savings": per_building_savings,
                 "tariff": tariff,
                 "tariff_unit": tariff_unit,
                 "sfx": aggregate.get("label_suffix", ""),
@@ -790,6 +857,12 @@ if image is not None and mask is not None:
 
 if "results" in st.session_state:
     R = st.session_state["results"]
+
+    # Guard against stale session state from older app version
+    if "per_building_savings" not in R:
+        st.warning("Session data is outdated. Please click **Run Pipeline** again.")
+        del st.session_state["results"]
+        st.stop()
 
     num_roofs = R["num_roofs"]
     total_area = R["total_area"]
@@ -883,15 +956,18 @@ if "results" in st.session_state:
     else:
         baseline_note = "Potential yearly solar energy output"
 
-    annual_savings = R["annual_savings"]
+    total_savings = R["total_savings_electricity"]
+    total_sub = R["total_subsidy"]
     tariff_unit = R["tariff_unit"]
     tariff_val = R["tariff"]
-    if annual_savings >= 1_000_000:
-        savings_str = f"{annual_savings / 1_000_000:,.2f}M"
-    elif annual_savings >= 1_000:
-        savings_str = f"{annual_savings / 1_000:,.1f}K"
+
+    avg_savings = total_savings / num_roofs if num_roofs else 0
+    if avg_savings >= 1_000_000:
+        avg_sav_str = f"{avg_savings / 1_000_000:,.2f}M"
+    elif avg_savings >= 1_000:
+        avg_sav_str = f"{avg_savings / 1_000:,.1f}K"
     else:
-        savings_str = f"{annual_savings:,.0f}"
+        avg_sav_str = f"{avg_savings:,.0f}"
 
     st.markdown(f"""
     <div class="annual-split">
@@ -906,13 +982,15 @@ if "results" in st.session_state:
         <div class="annual-right">
             <div class="icon-circle">💰</div>
             <div>
-                <div class="banner-label">Money Saved per annum by the residents</div>
-                <div class="banner-value">{savings_str} {tariff_unit}</div>
-                <div class="banner-sub">Based on {tariff_val} {tariff_unit}/kWh residential tariff</div>
+                <div class="banner-label">Money Saved per annum by each resident</div>
+                <div class="banner-value">₹{avg_sav_str}</div>
+                <div class="banner-sub">Avg. per building @ ₹{tariff_val}/kWh · {num_roofs} buildings total</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+
 
     # ── KEY INSIGHTS ──
     avg_kw = total_kw / num_roofs if num_roofs else 0
