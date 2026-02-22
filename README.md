@@ -15,7 +15,6 @@
 
 ```powershell
 # 1. Create venv
-cd d:\PROJECTS\AIML-Hackathon-21feb\satellite
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 
